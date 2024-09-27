@@ -1,11 +1,12 @@
 ﻿
 using System.Net.Http.Json;
 using System.Text.Json;
+using GPTProject.Core;
 using GPTTest.Providers.GigaChat.Common;
 
 namespace GPTTest.Providers.GigaChat
 {
-    public class GigaChatDialog
+    public class GigaChatDialog : IGPTDialog
     {
         private List<Message> messagesHistory;
         private HttpClient httpClient;
@@ -60,7 +61,7 @@ namespace GPTTest.Providers.GigaChat
             }
         }
 
-        public async Task GetCompletionsMessage(string role, string content)
+        public async Task<string> SendUserMessageAndGetFirstResult(string content)
         {
             if (content.Length < minimalContentLength)
             {
@@ -73,8 +74,11 @@ namespace GPTTest.Providers.GigaChat
                 accessData = newAccessData;
             }
 
-            var message = new Message() { Role = role, Content = content };
-            messagesHistory.Add(message);
+            messagesHistory.Add(new Message()
+            {
+                Role = Role.User,
+                Content = content
+            });
 
             var Request = new Request()
             {
@@ -96,11 +100,24 @@ namespace GPTTest.Providers.GigaChat
                 throw new Exception("No choices were returned by the API");
             }
 
-            var choice = choices[0];
-            var responseMessage = choice.Message;
-            messagesHistory.Add(responseMessage);
-            var responseText = responseMessage.Content.Trim();
-            Console.WriteLine($"GigaChat: {responseText}");
+            return choices[0].Message.Content.Trim();
+        }
+
+        public void ClearDialog() => messagesHistory.Clear();
+
+        public void SetSystemPrompt(string message, bool clearDialog = true)
+        {
+            if (clearDialog)
+            {
+                ClearDialog();
+            }
+
+            if (string.IsNullOrEmpty(message))
+            {
+                throw new ArgumentException("message is null");
+            }
+
+            messagesHistory.Add(new Message() { Role = Role.System, Content = message });
         }
     }
 }

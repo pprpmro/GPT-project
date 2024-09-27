@@ -1,9 +1,10 @@
 ﻿using System.Net.Http.Json;
+using GPTProject.Core;
 using GPTTest.Common;
 
 namespace GPTTest.Providers.ChatGPT
 {
-    public class ChatGPTDialog
+    public class ChatGPTDialog : IGPTDialog
     {
         private const string apiKey = "sk-proj-E4Jev0ifLv4GVhPmZqKCT3BlbkFJE4v11lxBvMfwYHl18vpX";
         private const string endpoint = "https://api.openai.com/v1/chat/completions";
@@ -24,25 +25,6 @@ namespace GPTTest.Providers.ChatGPT
 
         public void ClearDialog() => messagesHistory.Clear();
 
-        public void SetSystemPrompt(Message message, bool clear = true)
-        {
-            if (clear)
-            {
-                ClearDialog();
-            }
-
-            if (message == null)
-            {
-                throw new ArgumentException("message is null");
-            }
-
-            if (message.Role != Role.System)
-            {
-                throw new ArgumentException("Role must be System");
-            }
-
-            messagesHistory.Add(message);
-        }
         public void SetSystemPrompt(string message, bool clear = true)
         {
             if (clear)
@@ -58,7 +40,7 @@ namespace GPTTest.Providers.ChatGPT
             messagesHistory.Add(new Message() { Role = Role.System, Content = message});
         }
 
-        public async Task<List<Choice>> SendUserMessage(string message)
+        public async Task<string> SendUserMessageAndGetFirstResult(string message)
         {
             if (message.Length < minimalContentLength)
             {
@@ -85,9 +67,13 @@ namespace GPTTest.Providers.ChatGPT
             }
 
             ResponseData? responseData = await response.Content.ReadFromJsonAsync<ResponseData>();
-
             var choices = responseData?.Choices ?? new List<Choice>();
-            return choices;
+            if (choices.Count == 0)
+            {
+                throw new Exception("No choices were returned by the API");
+            }
+
+            return choices[0].Message.Content.Trim();
         }
     }
 }

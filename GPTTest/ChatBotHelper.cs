@@ -1,4 +1,4 @@
-﻿using GPTTest.Common;
+﻿using GPTProject.Core;
 using GPTTest.KnowledgeBase.Knifes;
 using GPTTest.Providers.ChatGPT;
 
@@ -6,8 +6,8 @@ namespace GPTTest
 {
     public class ChatBotHelper
     {
-        private readonly ChatGPTDialog userDialog;
-        private readonly ChatGPTDialog classificationDialog;
+        private readonly IGPTDialog userDialog;
+        private readonly IGPTDialog classificationDialog;
 
         public ChatBotHelper()
         {
@@ -39,31 +39,18 @@ namespace GPTTest
             {
                 lastType = sourceType;
                 userDialog.ClearDialog();
-                var systemMessage = new Message()
-                {
-                    Role = Role.System,
-                    Content = GetSystemPrompt(source)
-                };
-                userDialog.SetSystemPrompt(systemMessage);
+                userDialog.SetSystemPrompt(message: GetSystemPrompt(source));
             }
 
-            var result = await userDialog.SendUserMessage(userPrompt);
-            var answer = result[0].Message.Content;
-            return answer;
+            return await userDialog.SendUserMessageAndGetFirstResult(userPrompt);
         }
 
         private async Task<SourceType> GetSourceTypeByUserPrompt(string userPrompt)
         {
-            var systemMessage = new Message() 
-            {
-                Role = Role.System, 
-                Content = GetClassificationPrompt()
-            };
-            classificationDialog.SetSystemPrompt(systemMessage);
+            classificationDialog.SetSystemPrompt(message: GetClassificationPrompt());
 
-            var result = await classificationDialog.SendUserMessage(userPrompt);
-            var answer = result[0].Message.Content;
-            int.TryParse(answer, out var resultSource);
+            var result = await classificationDialog.SendUserMessageAndGetFirstResult(userPrompt);
+            int.TryParse(result, out var resultSource);
             classificationDialog.ClearDialog();
             return (SourceType)resultSource;
         }
