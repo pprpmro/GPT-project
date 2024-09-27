@@ -9,7 +9,6 @@ namespace SITBLabs
         public static Regex squareBrackets = new Regex(@"\[\d+\]");
         public static Regex populationRegex = new Regex(@"Население\s+—\s+(\d+)\s+чел");
         public static Regex foundedYearRegex = new Regex(@"в\s+(\d{4})\s+году");
-        public static Regex postIndexYearRegex = new Regex(@"Почтовый индекс\s+(\d{6})");
 
         public static string tulaNewsUrl = "https://tulacity.gosuslugi.ru/dlya-zhiteley/novosti-i-reportazhi/?cur_cc=40&curPos=";
 
