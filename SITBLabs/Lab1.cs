@@ -32,7 +32,11 @@ namespace SITBLabs
                 Console.WriteLine($"Completed iteration {i}");
             });
 
-            var result = commonList.GroupBy(x => x).Select(group => new { Tag = group.Key, Count = group.Count() }).OrderByDescending(x => x.Count).ToList();
+            var result = commonList
+                .GroupBy(x => x)
+                .Select(group => new { Tag = group.Key, Count = group.Count() })
+                .OrderByDescending(x => x.Count)
+                .ToList();
 
             foreach (var item in result)
             {

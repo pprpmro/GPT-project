@@ -17,10 +17,9 @@ namespace GPTTest
 
         private SourceType? lastType = null;
 
-        public async Task<string> SendRequest(string userPrompt)
+        public async Task<string> GetResultByPrompt(string userPrompt)
         {
             var sourceType = await GetSourceTypeByUserPrompt(userPrompt);
-            await Console.Out.WriteLineAsync($"Type: {sourceType}");
 
             if (sourceType == SourceType.Неопределено)
             {

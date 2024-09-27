@@ -2,10 +2,8 @@
 {
     public interface IGPTDialog
     {
-        Task<string> SendUserMessageAndGetFirstResult(string content);
-
+        Task<string> SendUserMessageAndGetFirstResult(string message);
         void ClearDialog();
-
-        void SetSystemPrompt(string message, bool clear = true);
+        void SetSystemPrompt(string message, bool clearDialog = true);
     }
 }
