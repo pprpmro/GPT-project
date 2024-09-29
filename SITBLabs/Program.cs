@@ -11,7 +11,8 @@ namespace SITBLabs
 
         static void Main(string[] args)
         {
-            Task.Run(() => Lab1.Run()).Wait();
+            Lab1.SityWikiRun();
+            //Task.Run(() => Lab1.SityNewsRun()).Wait();
         }
     }
 }

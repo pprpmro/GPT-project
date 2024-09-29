@@ -7,14 +7,15 @@ namespace SITBLabs
     public static class Lab1
     {
         public static Regex squareBrackets = new Regex(@"\[\d+\]");
-        public static Regex populationRegex = new Regex(@"Население\s+—\s+(\d+)\s+чел");
-        public static Regex foundedYearRegex = new Regex(@"в\s+(\d{4})\s+году");
+
+        public static Regex populationRegex = new Regex(@"Население\s+(\d+\s.\d+)");
+        public static Regex foundedYearRegex = new Regex(@"Первое упоминание\s+(\d{4})");
 
         public static string tulaNewsUrl = "https://tulacity.gosuslugi.ru/dlya-zhiteley/novosti-i-reportazhi/?cur_cc=40&curPos=";
 
         public static object locker = new object();
 
-        public static async Task Run()
+        public static async Task SityNewsRun()
         {
             var commonList = new List<string>();
 
@@ -44,9 +45,9 @@ namespace SITBLabs
             }
         }
 
-        public static void KurkinoTestRun()
+        public static void SityWikiRun()
         {
-            var url = "https://ru.wikipedia.org/wiki/%D0%9A%D1%83%D1%80%D0%BA%D0%B8%D0%BD%D0%BE_(%D0%A2%D1%83%D0%BB%D1%8C%D1%81%D0%BA%D0%B0%D1%8F_%D0%BE%D0%B1%D0%BB%D0%B0%D1%81%D1%82%D1%8C)";
+            var url = "https://ru.wikipedia.org/wiki/%D0%A2%D1%83%D0%BB%D0%B0";
             var html = Task.Run(() => GetHtmlFromUrlAsync(url)).Result;
 
             var htmlDocument = new HtmlDocument();
@@ -55,13 +56,14 @@ namespace SITBLabs
 
 
             pageText = squareBrackets.Replace(pageText, " ");
-            Console.WriteLine(pageText);
+            pageText = pageText.Replace('↘', ' ');
+            //Console.WriteLine(pageText);
 
             var population = FindPopulation(pageText);
-            Console.WriteLine($"Население поселка: {population}");
+            Console.WriteLine($"Население поселка: {population} чел.");
 
             var foundedYear = FindFoundedYear(pageText);
-            Console.WriteLine($"Поселение основано в: {foundedYear}");
+            Console.WriteLine($"Первое упоминание в: {foundedYear} г.");
 
             string ExtractTextFromBodyHtml(HtmlDocument htmlDocument)
             {
@@ -76,12 +78,12 @@ namespace SITBLabs
                 }
             }
 
-            string FindPopulation(string text)
+            string? FindPopulation(string text)
             {
                 return FindDataByRegex(text, populationRegex);
             }
 
-            string FindFoundedYear(string text)
+            string? FindFoundedYear(string text)
             {
                 return FindDataByRegex(text, foundedYearRegex);
             }
@@ -125,14 +127,14 @@ namespace SITBLabs
             }
         }
 
-        static string FindDataByRegex(string text, Regex regex)
+        static string? FindDataByRegex(string text, Regex regex)
         {
             var match = regex.Match(text);
             if (match.Success)
             {
                 return match.Groups[1].Value;
             }
-            return "Не найдено";
+            return null;
         }
     }
 }
