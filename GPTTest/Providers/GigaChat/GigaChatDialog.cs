@@ -1,12 +1,10 @@
-﻿
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text.Json;
-using GPTProject.Core;
-using GPTTest.Providers.GigaChat.Common;
+using GPTTest.Common;
 
-namespace GPTTest.Providers.GigaChat
+namespace GPTProject.Core.Providers.GigaChat
 {
-    public class GigaChatDialog : IGPTDialog
+    public class GigaChatDialog : IChatDialog
     {
         private List<Message> messagesHistory;
         private HttpClient httpClient;
@@ -29,9 +27,9 @@ namespace GPTTest.Providers.GigaChat
             httpClient.DefaultRequestHeaders.Add("RqUID", RqUID.ToString());
 
             var scopeList = new List<KeyValuePair<string, string>>() { new KeyValuePair<string, string>("scope", Settings.scope) };
-            using var response = await httpClient.PostAsync(Settings.getAccessTokenEndpoint, new FormUrlEncodedContent(scopeList));
+            using var response = await httpClient.PostAsync(Settings.accessTokenEndpoint, new FormUrlEncodedContent(scopeList));
 
-            var accessData = GetAccessDataFromResponseMessage(response);
+            var accessData = GetAccessData(response);
 
             if (accessData == null)
             {
@@ -41,27 +39,27 @@ namespace GPTTest.Providers.GigaChat
             httpClient.DefaultRequestHeaders.Clear();
             httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessData.AcessToken}");
             return accessData;
+
+            AccessData? GetAccessData(HttpResponseMessage? response)
+            {
+                if (response == null)
+                {
+                    throw new NullReferenceException(nameof(response));
+                }
+
+                string result = response.Content.ReadAsStringAsync().Result;
+                if (response.IsSuccessStatusCode)
+                {
+                    return JsonSerializer.Deserialize<AccessData>(result);
+                }
+                else
+                {
+                    throw new Exception($"{(int)response.StatusCode} {response.StatusCode}");
+                }
+            }
         }
 
-        private AccessData? GetAccessDataFromResponseMessage(HttpResponseMessage? response)
-        {
-            if (response == null)
-            {
-                throw new NullReferenceException(nameof(response));
-            }
-
-            string result = response.Content.ReadAsStringAsync().Result;
-            if (response.IsSuccessStatusCode)
-            {
-                return JsonSerializer.Deserialize<AccessData>(result);
-            }
-            else
-            {
-                throw new Exception($"{(int)response.StatusCode} {response.StatusCode}");
-            }
-        }
-
-        public async Task<string> SendUserMessageAndGetFirstResult(string content)
+        public async Task<string> SendMessage(string content)
         {
             if (content.Length < minimalContentLength)
             {
@@ -86,7 +84,7 @@ namespace GPTTest.Providers.GigaChat
                 Messages = messagesHistory
             };
 
-            using var response = await httpClient.PostAsJsonAsync(Settings.getCompletionsEndpoint, Request);
+            using var response = await httpClient.PostAsJsonAsync(Settings.completionsEndpoint, Request);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -102,9 +100,7 @@ namespace GPTTest.Providers.GigaChat
 
             return choices[0].Message.Content.Trim();
         }
-
         public void ClearDialog() => messagesHistory.Clear();
-
         public void SetSystemPrompt(string message, bool clearDialog = true)
         {
             if (clearDialog)

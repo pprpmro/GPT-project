@@ -5,7 +5,7 @@ VisualStudioVersion = 17.9.34728.123
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GPTProject.Core", "GPTTest\GPTProject.Core.csproj", "{38961B34-0507-463B-A6F0-61230A5BE8AA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SITBLabs", "SITBLabs\SITBLabs.csproj", "{40B37435-922D-449C-A52E-5F67F1A269C7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GPTProject.ConsoleUI", "GPTProject.ConsoleUI\GPTProject.ConsoleUI.csproj", "{C34FE5B7-572E-4847-AF7C-F3F4913D84A3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{38961B34-0507-463B-A6F0-61230A5BE8AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{38961B34-0507-463B-A6F0-61230A5BE8AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{38961B34-0507-463B-A6F0-61230A5BE8AA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{40B37435-922D-449C-A52E-5F67F1A269C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{40B37435-922D-449C-A52E-5F67F1A269C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{40B37435-922D-449C-A52E-5F67F1A269C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{40B37435-922D-449C-A52E-5F67F1A269C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C34FE5B7-572E-4847-AF7C-F3F4913D84A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C34FE5B7-572E-4847-AF7C-F3F4913D84A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C34FE5B7-572E-4847-AF7C-F3F4913D84A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C34FE5B7-572E-4847-AF7C-F3F4913D84A3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

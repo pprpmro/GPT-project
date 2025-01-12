@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace GPTTest.Providers.GigaChat.Common
+namespace GPTProject.Core.Providers.GigaChat
 {
     public class AccessData
     {

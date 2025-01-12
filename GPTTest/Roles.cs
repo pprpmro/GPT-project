@@ -1,4 +1,4 @@
-﻿namespace GPTTest
+﻿namespace GPTProject.Core
 {
     public static class Role
     {

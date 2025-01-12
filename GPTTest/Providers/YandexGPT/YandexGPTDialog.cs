@@ -17,7 +17,7 @@ namespace GPTTest.Providers.YandexGPT
             httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Settings.OAuthToken}");
             httpClient.DefaultRequestHeaders.Add("RqUID", RqUID.ToString());
 
-            using var response = await httpClient.PostAsync(Settings.getAccessTokenEndpoint, new StringContent(Settings.OAuthToken));
+            using var response = await httpClient.PostAsync(Settings.accessTokenEndpoint, new StringContent(Settings.OAuthToken));
 
             //var accessData = GetAccessDataFromResponseMessage(response);
 

@@ -1,94 +1,79 @@
-﻿using GPTProject.Core;
-using GPTTest.KnowledgeBase.Knifes;
-using GPTTest.Providers.ChatGPT;
+﻿using GPTProject.Core.Providers.ChatGPT;
 
-namespace GPTTest
+namespace GPTProject.Core
 {
     public class ChatBotHelper
     {
-        private readonly IGPTDialog userDialog;
-        private readonly IGPTDialog classificationDialog;
+        private readonly IChatDialog userDialog;
+        private readonly IChatDialog classificationDialog;
 
-        public ChatBotHelper()
+        private readonly Dictionary<string, string> availableTypesAndFileNames;
+
+        public ChatBotHelper(
+            string availableTypesAndFileNamesString,
+            string filePaths,
+            string userPrompt,
+            string classificationPrompt)
         {
-            classificationDialog = new ChatGPTDialog();
-            userDialog = new ChatGPTDialog();
+            this.classificationDialog = new ChatGPTDialog();
+            this.userDialog = new ChatGPTDialog();
+            this.availableTypesAndFileNames = new Dictionary<string, string>();
+
+            var rawAvailavleTypes = availableTypesAndFileNamesString.Split(';').Select(x => x.Trim()).ToList();
+
+            foreach (var item in rawAvailavleTypes)
+            {
+                var typeAndFileNamePair = item.Split(':').Select(x => x.Trim()).ToArray();
+
+                var type = typeAndFileNamePair[0];
+                var fileName = typeAndFileNamePair[1];
+
+                availableTypesAndFileNames.Add(type, fileName);
+            }
+
+            availableTypesAndFileNames.Add("Неопределено", String.Empty);
         }
 
-        private SourceType? lastType = null;
+        private string? lastType = null;
 
         public async Task<string> GetResultByPrompt(string userPrompt)
         {
             var sourceType = await GetSourceTypeByUserPrompt(userPrompt);
 
-            if (sourceType == SourceType.Неопределено)
+            if (sourceType == "Неизвестно")
             {
                 return "Неизвестно";
             }
 
-            var source = GetSourceBySourceType(sourceType);
+            //var source = GetSourceBySourceType(sourceType);
 
-            if (string.IsNullOrEmpty(source))
-            {
-                throw new Exception("Source was null");
-            }
+            //if (string.IsNullOrEmpty(source))
+            //{
+            //    throw new Exception("Source was null");
+            //}
 
 
-            if (!lastType.HasValue || lastType.Value != sourceType)
-            {
-                lastType = sourceType;
-                userDialog.ClearDialog();
-                userDialog.SetSystemPrompt(message: GetSystemPrompt(source));
-            }
+            //if (!lastType.HasValue || lastType.Value != sourceType)
+            //{
+            //    lastType = sourceType;
+            //    userDialog.ClearDialog();
+            //    userDialog.SetSystemPrompt(message: GetSystemPrompt(source));
+            //}
 
-            return await userDialog.SendUserMessageAndGetFirstResult(userPrompt);
+            return await userDialog.SendMessage(userPrompt);
         }
 
-        private async Task<SourceType> GetSourceTypeByUserPrompt(string userPrompt)
+        private async Task<string> GetSourceTypeByUserPrompt(string userPrompt)
         {
             classificationDialog.SetSystemPrompt(message: GetClassificationPrompt());
 
-            var result = await classificationDialog.SendUserMessageAndGetFirstResult(userPrompt);
+            var result = await classificationDialog.SendMessage(userPrompt);
             int.TryParse(result, out var resultSource);
             classificationDialog.ClearDialog();
-            return (SourceType)resultSource;
+
+            return "";
+            //return (SourceType)resultSource;
         }
-
-        #region Mapping
-        private string GetPathByType(SourceType sourceType)
-        {
-            var startPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\"));
-            switch (sourceType)
-            {
-                case SourceType.Каталог:
-                    {
-                        return Path.Combine(startPath, @"KnowledgeBase\Knifes\Sources\Katalog.txt");
-                    }
-
-                case SourceType.Как_затачивать:
-                    {
-                        return Path.Combine(startPath, @"KnowledgeBase\Knifes\Sources\HowToSharpenKnife.txt");
-                    }
-
-                case SourceType.Рекомендации_к_использованию:
-                    {
-                        return Path.Combine(startPath, @"KnowledgeBase\Knifes\Sources\HowToUse.txt");
-                    }
-            }
-
-            throw new Exception("Incorrect type");
-        }
-        public string GetSourceBySourceType(SourceType sourceType)
-        {
-            var result = string.Empty;
-            var path = GetPathByType(sourceType);
-            using (var reader = new StreamReader(path))
-            {
-                result = reader.ReadToEnd();
-            }
-            return result;
-        }
-        #endregion
 
         #region Propmpts
         private string GetSystemPrompt(string source)
