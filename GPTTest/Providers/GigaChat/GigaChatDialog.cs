@@ -1,6 +1,6 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
-using GPTTest.Common;
+using GPTProject.Common;
 
 namespace GPTProject.Core.Providers.GigaChat
 {

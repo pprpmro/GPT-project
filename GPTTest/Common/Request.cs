@@ -1,11 +1,13 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace GPTTest.Common
+namespace GPTProject.Common
 {
     public class Request
     {
         [JsonPropertyName("model")]
         public string ModelId { get; set; } = "";
+        [JsonPropertyName("modelUri")]
+        public string ModelUri { get; set; } = "";
         [JsonPropertyName("messages")]
         public List<Message> Messages { get; set; } = new();
         public int MaxTokens { get; set; } = 2048;

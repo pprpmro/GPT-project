@@ -1,51 +1,73 @@
-﻿using System;
+﻿using System.Net.Http.Json;
+using GPTProject.Common;
 
 
-namespace GPTTest.Providers.YandexGPT
+namespace GPTProject.Core.Providers.YandexGPT
 {
-    public class YandexGPTDialog
+    public class YandexGPTDialog : IChatDialog
     {
-        //private List<Message> messagesHistory;
+        private List<YandexMessage> messagesHistory;
         private HttpClient httpClient;
-        //private AccessData? accessData;
         private const int minimalContentLength = 1;
-        private Guid RqUID;
 
-        private async Task GetAccessData()
+        public YandexGPTDialog()
         {
-            httpClient.DefaultRequestHeaders.Clear();
-            httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Settings.OAuthToken}");
-            httpClient.DefaultRequestHeaders.Add("RqUID", RqUID.ToString());
-
-            using var response = await httpClient.PostAsync(Settings.accessTokenEndpoint, new StringContent(Settings.OAuthToken));
-
-            //var accessData = GetAccessDataFromResponseMessage(response);
-
-            //if (accessData == null)
-            //{
-            //    throw new NullReferenceException(nameof(accessData));
-            //}
-
-            //httpClient.DefaultRequestHeaders.Clear();
-            //httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessData.AcessToken}");
+            messagesHistory = new List<YandexMessage>();
+            httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("Authorization", $"Api-Key {Settings.apiKey}");
         }
 
-        //private AccessData? GetAccessDataFromResponseMessage(HttpResponseMessage? response)
-        //{
-        //    if (response == null)
-        //    {
-        //        throw new NullReferenceException(nameof(response));
-        //    }
+        public async Task<string> SendMessage(string message)
+        {
+            if (message.Length < minimalContentLength)
+            {
+                throw new ArgumentException("Message length is less than minimum");
+            }
 
-        //    string result = response.Content.ReadAsStringAsync().Result;
-        //    if (response.IsSuccessStatusCode)
-        //    {
-        //        return JsonSerializer.Deserialize<AccessData>(result);
-        //    }
-        //    else
-        //    {
-        //        throw new Exception($"{(int)response.StatusCode} {response.StatusCode}");
-        //    }
-        //}
+            messagesHistory.Add(new YandexMessage()
+            {
+                Role = Role.User,
+                Text = message
+            });
+
+            var prompt = new YandexRequest()
+            {
+                ModelUri = $"gpt://{Settings.CatalogId}/yandexgpt-lite",
+                Messages = messagesHistory
+            };
+
+            using var response = await httpClient.PostAsJsonAsync(Settings.completionsEndpoint, prompt);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception($"{(int)response.StatusCode} {response.StatusCode}");
+            }
+
+            ResponseData? responseData = await response.Content.ReadFromJsonAsync<ResponseData>();
+            var choices = responseData?.Choices ?? new List<Choice>();
+            if (choices.Count == 0)
+            {
+                throw new Exception("No choices were returned by the API");
+            }
+
+            return choices[0].Message.Content.Trim();
+        }
+
+        public void ClearDialog() => messagesHistory.Clear();
+
+        public void SetSystemPrompt(string message, bool clearDialog = true)
+        {
+            if (clearDialog)
+            {
+                ClearDialog();
+            }
+
+            if (string.IsNullOrEmpty(message))
+            {
+                throw new ArgumentException("message is null");
+            }
+
+            messagesHistory.Add(new YandexMessage() { Role = Role.System, Text = message });
+        }
     }
 }

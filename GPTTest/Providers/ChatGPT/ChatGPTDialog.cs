@@ -1,21 +1,20 @@
 ﻿using System.Net.Http.Json;
-using GPTTest.Common;
+using GPTProject.Common;
 
 namespace GPTProject.Core.Providers.ChatGPT
 {
     public class ChatGPTDialog : IChatDialog
     {
 
-        private List<Message> messagesHistory = new List<Message>();
+        private List<Message> messagesHistory;
         private HttpClient httpClient;
-
-
         private const int minimalContentLength = 1;
 
         public int MessageCount { get { return messagesHistory.Count; } }
 
         public ChatGPTDialog()
         {
+            messagesHistory = new List<Message>();
             httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {Settings.apiKey}");
         }
