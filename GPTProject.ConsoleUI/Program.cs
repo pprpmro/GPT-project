@@ -32,7 +32,7 @@ namespace GPTProject.ConsoleUI
 						}
 						Console.ResetColor();
 						var result = helper.Process(userMessage);
-
+						Console.WriteLine(result);
 					}
 				}
 			}

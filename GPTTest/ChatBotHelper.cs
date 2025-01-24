@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System;
+using System.Text.Json;
 using GPTProject.Core.Providers.ChatGPT;
 using GPTProject.Core.Providers.GigaChat;
 using GPTProject.Core.Providers.YandexGPT;
@@ -50,8 +51,6 @@ namespace GPTProject.Core
 			currentState = DialogState.Awaiting;
 		}
 
-		private string? lastType = null;
-
 		private DialogState currentState;
 
 
@@ -59,6 +58,8 @@ namespace GPTProject.Core
 		private string? questionToClarify = null;
 
 		private Queue<string> questionsToAnswer = new Queue<string>();
+
+		private List<int>? lastSourceTypeIndexes = null;
 
 		public async Task<string> Process(string message)
 		{
@@ -182,42 +183,57 @@ namespace GPTProject.Core
 		}
 		private async Task<string> GetAnswer(string userPrompt)
 		{
-			var sourceTypeIndex = await GetSourceTypeByUserPrompt(userPrompt);
-
-			if (sourceTypeIndex == -1)
+			var sourceTypeIndexes = await GetSourcesTypeByUserPrompt(userPrompt);
+			if (sourceTypeIndexes.Count == 0)
 			{
 				return "Некорректный запрос";
 			}
 
-			var sourceType = AvailableTypes[sourceTypeIndex];
-			var path = availableTypesAndFileNames[sourceType];
-			var source = GetSourceByPath(path);
+			var isEqual = lastSourceTypeIndexes?.SequenceEqual<int>(sourceTypeIndexes) ?? false;
 
-			if (string.IsNullOrEmpty(source))
+			if (!isEqual)
 			{
-				throw new Exception("Source was null");
+				var sources = new List<string>();
+				foreach (var index in sourceTypeIndexes)
+				{
+					var sourceType = AvailableTypes[index];
+					var path = availableTypesAndFileNames[sourceType];
+					var source = GetSourceByPath(path);
+					if (string.IsNullOrEmpty(source))
+					{
+						throw new Exception("Source was null");
+					}
+					sources.Add(source);
+				}
+				userDialog.ReplaceSystemPrompt(message: GetSystemPrompt(sources), clearDialog: false);
+				lastSourceTypeIndexes = sourceTypeIndexes;
 			}
 
-			if (string.IsNullOrEmpty(lastType) || lastType != sourceType)
-			{
-				lastType = sourceType;
-			}
-
-			userDialog.ClearDialog();
-			userDialog.SetSystemPrompt(message: GetSystemPrompt(source));
 			return await userDialog.SendMessage(userPrompt);
 		}
-		private async Task<int> GetSourceTypeByUserPrompt(string userPrompt)
+		private async Task<List<int>> GetSourcesTypeByUserPrompt(string userPrompt)
 		{
 			if (AvailableTypes.Count == 0)
 			{
 				throw new Exception("Types dont exist");
 			}
 			classificationDialog.SetSystemPrompt(message: GetClassificationPrompt(AvailableTypes));
-			var result = await classificationDialog.SendMessage(userPrompt);
-			int.TryParse(result, out var resultSource);
+			var typesString = await classificationDialog.SendMessage(userPrompt);
+			var types = typesString.Split(new char[] { ';' });
+			var listOfTypes = new List<int>();
+
+			for (int i = 0; i < types.Length; i++)
+			{
+				var parseResult = int.TryParse(types[i], out var resultSource);
+				if (parseResult)
+				{
+					listOfTypes.Add(resultSource);
+				}
+			}
+
+			
 			classificationDialog.ClearDialog();
-			return resultSource;
+			return listOfTypes;
 		}
 		private string GetSourceByPath(string path)
 		{
@@ -278,14 +294,21 @@ namespace GPTProject.Core
 		}
 
 		#region Propmpts
-		private static string GetSystemPrompt(string source)
+		private static string GetSystemPrompt(List<string> sources)
 		{
-			return
+			var systemPrompt =
 				$"Я хочу чтобы ты выступил в роле консультанта магазина по продаже рукодельных ножей определенным вопросом, ты не должен отвечать на все подряд." +
 				$" Для ответов пользователям используй только предоставленную базу знаний, не выдумывай ничего лишнего, если тебе не хватает знаний ответить на вопрос, скажи:" +
 				$"\"Мне не хватает знаний ответить на это\"." +
 				$" Если пользователь задал вопрос не по теме, то отвечай что это не входит в твои обязанности." +
-				$" Твоя база знаний:{Environment.NewLine}\"{source}\"";
+				$" Твоя база знаний:";
+
+			foreach (var source in sources)
+			{
+				systemPrompt += $"{Environment.NewLine}{source}";
+			}
+
+			return systemPrompt;
 		}
 
 		private static string GetClassificationPrompt(List<string> types)

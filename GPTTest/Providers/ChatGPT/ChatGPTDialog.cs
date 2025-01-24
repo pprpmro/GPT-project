@@ -3,83 +3,100 @@ using GPTProject.Common;
 
 namespace GPTProject.Core.Providers.ChatGPT
 {
-    public class ChatGPTDialog : IChatDialog
-    {
+	public class ChatGPTDialog : IChatDialog
+	{
 
-        private List<Message> messagesHistory;
-        private HttpClient httpClient;
-        private const int minimalContentLength = 1;
+		private List<Message> messagesHistory;
+		private HttpClient httpClient;
+		private const int minimalContentLength = 1;
 
-        public int MessageCount { get { return messagesHistory.Count; } }
+		public int MessageCount { get { return messagesHistory.Count; } }
 
-        public ChatGPTDialog()
-        {
-            messagesHistory = new List<Message>();
-            httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {Settings.apiKey}");
-        }
+		public ChatGPTDialog()
+		{
+			messagesHistory = new List<Message>();
+			httpClient = new HttpClient();
+			httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {Settings.apiKey}");
+		}
 
-        public void ClearDialog(bool clearSystemPrompt = true)
-        {
-            if (clearSystemPrompt)
-            {
-                messagesHistory.Clear();
-            }
-            else
-            {
-                messagesHistory = messagesHistory.Where(x => x.Role == Role.System).ToList();
-            }
-        }
+		public void ClearDialog(bool clearSystemPrompt = true)
+		{
+			if (clearSystemPrompt)
+			{
+				messagesHistory.Clear();
+			}
+			else
+			{
+				messagesHistory.RemoveRange(1, messagesHistory.Count - 1);
+			}
+		}
 
-        public void SetSystemPrompt(string message, bool clear = true)
-        {
-            if (clear)
-            {
-                ClearDialog();
-            }
+		public void SetSystemPrompt(string message)
+		{
 
-            if (string.IsNullOrEmpty(message))
-            {
-                throw new ArgumentException("message is null");
-            }
+			ClearDialog();
+			if (string.IsNullOrEmpty(message))
+			{
+				throw new ArgumentException("message is null");
+			}
 
-            messagesHistory.Add(new Message() { Role = Role.System, Content = message});
-        }
+			messagesHistory.Add(new Message() { Role = Role.System, Content = message});
+		}
 
-        public async Task<string> SendMessage(string message)
-        {
-            if (message.Length < minimalContentLength)
-            {
-                throw new ArgumentException("Message length is less than minimum");
-            }
+		public void ReplaceSystemPrompt(string message, bool clearDialog = true)
+		{
+			if (clearDialog)
+			{
+				ClearDialog();
+				SetSystemPrompt(message);
+				return;
+			}
 
-            messagesHistory.Add(new Message()
-            {
-                Role = Role.User,
-                Content = message
-            });
+			if (messagesHistory[0].Role == Role.System)
+			{
+				messagesHistory[0].Content = message;
+			}
+			else
+			{
+				ClearDialog();
+				SetSystemPrompt(message);
+			}
+		}
 
-            var requestData = new Request()
-            {
-                ModelId = "gpt-3.5-turbo",
-                Messages = messagesHistory
-            };
+		public async Task<string> SendMessage(string message)
+		{
+			if (message.Length < minimalContentLength)
+			{
+				throw new ArgumentException("Message length is less than minimum");
+			}
 
-            using var response = await httpClient.PostAsJsonAsync(Settings.completionsEndpoint, requestData);
+			messagesHistory.Add(new Message()
+			{
+				Role = Role.User,
+				Content = message
+			});
 
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new Exception($"{(int)response.StatusCode} {response.StatusCode}");
-            }
+			var requestData = new Request()
+			{
+				ModelId = "gpt-3.5-turbo",
+				Messages = messagesHistory
+			};
 
-            ResponseData? responseData = await response.Content.ReadFromJsonAsync<ResponseData>();
-            var choices = responseData?.Choices ?? new List<Choice>();
-            if (choices.Count == 0)
-            {
-                throw new Exception("No choices were returned by the API");
-            }
+			using var response = await httpClient.PostAsJsonAsync(Settings.completionsEndpoint, requestData);
 
-            return choices[0].Message.Content.Trim();
-        }
-    }
+			if (!response.IsSuccessStatusCode)
+			{
+				throw new Exception($"{(int)response.StatusCode} {response.StatusCode}");
+			}
+
+			ResponseData? responseData = await response.Content.ReadFromJsonAsync<ResponseData>();
+			var choices = responseData?.Choices ?? new List<Choice>();
+			if (choices.Count == 0)
+			{
+				throw new Exception("No choices were returned by the API");
+			}
+
+			return choices[0].Message.Content.Trim();
+		}
+	}
 }
