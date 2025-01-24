@@ -53,7 +53,17 @@ namespace GPTProject.Core.Providers.YandexGPT
             return choices[0].Message.Content.Trim();
         }
 
-        public void ClearDialog() => messagesHistory.Clear();
+        public void ClearDialog(bool clearSystemPrompt = true)
+        {
+            if (clearSystemPrompt)
+            {
+                messagesHistory.Clear();
+            }
+            else
+            {
+                messagesHistory = messagesHistory.Where(x => x.Role == Role.System).ToList();
+            }
+        }
 
         public void SetSystemPrompt(string message, bool clearDialog = true)
         {

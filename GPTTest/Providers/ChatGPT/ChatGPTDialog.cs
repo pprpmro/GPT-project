@@ -19,7 +19,17 @@ namespace GPTProject.Core.Providers.ChatGPT
             httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {Settings.apiKey}");
         }
 
-        public void ClearDialog() => messagesHistory.Clear();
+        public void ClearDialog(bool clearSystemPrompt = true)
+        {
+            if (clearSystemPrompt)
+            {
+                messagesHistory.Clear();
+            }
+            else
+            {
+                messagesHistory = messagesHistory.Where(x => x.Role == Role.System).ToList();
+            }
+        }
 
         public void SetSystemPrompt(string message, bool clear = true)
         {
