@@ -7,10 +7,15 @@ namespace GPTProject.ConsoleUI
 	{
 		static void Main(string[] args)
 		{
-			var helper = new ChatBotHelper(Type.ChatGPT, null);
+
+			var startPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\..\"));
+			string sourcesFolderPath = Path.Combine(startPath, @"GPTProject.ConsoleUI\Sources");
+			List<string> txtFiles = GetTxtFiles(sourcesFolderPath);
+
+			var helper = new ChatBotHelper(Type.ChatGPT, txtFiles);
 
 			Console.ForegroundColor = ConsoleColor.Green;
-			Console.WriteLine("Готов к работе");
+			Console.WriteLine("ChatBotHelper готов к работе");
 			Console.ResetColor();
 
 			try
@@ -42,6 +47,16 @@ namespace GPTProject.ConsoleUI
 				Console.WriteLine($"{typeof(Exception)} \n\rMessage: {ex.Message}");
 				Console.ResetColor();
 			}
+		}
+
+		static List<string> GetTxtFiles(string folderPath)
+		{
+			if (!Directory.Exists(folderPath))
+			{
+				Console.WriteLine($"Папка {folderPath} не найдена.");
+				return new List<string>();
+			}
+			return new List<string>(Directory.GetFiles(folderPath, "*.txt", SearchOption.TopDirectoryOnly));
 		}
 	}
 }
