@@ -80,7 +80,7 @@ namespace GPTProject.Core.Providers.GigaChat
 
 			var Request = new Request()
 			{
-				ModelId = "GigaChat:latest",
+				Model = "GigaChat:latest",
 				Messages = messagesHistory
 			};
 

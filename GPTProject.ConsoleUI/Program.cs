@@ -29,7 +29,7 @@ namespace GPTProject.ConsoleUI
 						userMessage = Console.ReadLine();
 
 						Console.ForegroundColor = ConsoleColor.Yellow;
-						while (userMessage != null || string.IsNullOrEmpty(userMessage))
+						while (string.IsNullOrEmpty(userMessage))
 						{
 							Console.WriteLine("Введите сообщение!!!");
 							userMessage = Console.ReadLine();

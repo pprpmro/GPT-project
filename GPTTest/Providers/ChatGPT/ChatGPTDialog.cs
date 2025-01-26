@@ -40,7 +40,7 @@ namespace GPTProject.Core.Providers.ChatGPT
 				throw new ArgumentException("message is null");
 			}
 
-			messagesHistory.Add(new Message() { Role = Role.System, Content = message});
+			messagesHistory.Add(new Message() { Role = Role.Developer, Content = message});
 		}
 
 		public void ReplaceSystemPrompt(string message, bool clearDialog = true)
@@ -52,7 +52,7 @@ namespace GPTProject.Core.Providers.ChatGPT
 				return;
 			}
 
-			if (messagesHistory[0].Role == Role.System)
+			if (messagesHistory[0].Role == Role.Developer)
 			{
 				messagesHistory[0].Content = message;
 			}
@@ -78,7 +78,7 @@ namespace GPTProject.Core.Providers.ChatGPT
 
 			var requestData = new Request()
 			{
-				ModelId = "gpt-3.5-turbo",
+				Model = "gpt-3.5-turbo-0125",
 				Messages = messagesHistory
 			};
 
