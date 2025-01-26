@@ -45,7 +45,7 @@ namespace GPTProject.Core.Providers.ChatGPT
 
 		public void ReplaceSystemPrompt(string message, bool clearDialog = true)
 		{
-			if (clearDialog)
+			if (clearDialog || messagesHistory.Count == 0)
 			{
 				ClearDialog();
 				SetSystemPrompt(message);

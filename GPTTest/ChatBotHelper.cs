@@ -1,4 +1,7 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
+using GPTProject.Common;
+using GPTProject.Core;
 using GPTProject.Core.Providers.ChatGPT;
 using GPTProject.Core.Providers.GigaChat;
 using GPTProject.Core.Providers.YandexGPT;
@@ -19,7 +22,7 @@ namespace GPTProject.Core
 
 		private const bool loggingEnabled = true;
 
-		private string answeringResult = "";
+		private string outputMessage = "";
 
 
 		private List<string> AvailableTypes
@@ -62,47 +65,78 @@ namespace GPTProject.Core
 
 
 		private Queue<string>? separatedQuestions = null;
-		private string? questionToClarify = null;
+		
 
 		private Queue<string> questionsToAnswer = new Queue<string>();
 
 		private List<int>? lastSourceTypeIndexes = null;
 
-		public async Task<string> Process(string message)
+		private string? currentUserMessage;
+		private string? questionToClarify = null;
+
+		public void SetCurrentUserMessage(string message)
+		{
+			currentUserMessage = message;
+		}
+
+		public string GetOutputMessage() => outputMessage ?? "";
+
+		public async Task<bool> Process()
 		{
 			switch (currentState)
 			{
 				case DialogState.Awaiting:
-					answeringResult = "";
+				{
+					outputMessage = "";
 					StateLogging(loggingEnabled);
 					currentState = DialogState.Separating;
-					return await Process(message);
+					return true;
+				}
 				case DialogState.Separating:
+				{
 					StateLogging(loggingEnabled);
-					var success = await SeparateQuestion(message);
+					if (string.IsNullOrWhiteSpace(currentUserMessage))
+					{
+						throw new ArgumentException("currentUserMessage is null");
+					}
+					var success = await SeparateQuestion(currentUserMessage);
 					if (success)
 					{
-						currentState = DialogState.Clarifying;
+						currentState = DialogState.Answering;
 					}
+					else
 					{
 						currentState = DialogState.Error;
 					}
-					return await Process(message);
+					currentUserMessage = null;
+					return true;
+				}
 				case DialogState.Answering:
+				{
 					StateLogging(loggingEnabled);
-					var needCleansing = questionsToAnswer.Count == 1;
 
-					while(questionsToAnswer.Count == 0)
+					if (separatedQuestions is null)
 					{
-						var questionToAnswer = questionsToAnswer.Dequeue();
+						throw new Exception("separatedQuestions is null");
+					}
+
+					var needCleansing = questionsToAnswer.Count > 1;
+
+					while (separatedQuestions.Count > 0)
+					{
+						var questionToAnswer = separatedQuestions.Dequeue();
 						var partialAnswer = await GetAnswer(questionToAnswer);
 
 						if (partialAnswer.NeedСlarification)
 						{
-							return partialAnswer.Response!;
+							outputMessage = partialAnswer.ClarificationQuestion;
+							currentState = DialogState.Clarifying;
+							return true;
 						}
-
-						answeringResult += partialAnswer + Environment.NewLine;
+						else
+						{
+							outputMessage += partialAnswer.Response + Environment.NewLine;
+						}
 					}
 
 					if (needCleansing)
@@ -114,50 +148,42 @@ namespace GPTProject.Core
 						currentState = DialogState.Awaiting;
 					}
 
-					return answeringResult;
-				case DialogState.Clarifying://возможно стоит объединить с системным промптом, запускать его если основной бот скажет что ему не хватает информации
-					StateLogging(loggingEnabled);
-					if (questionToClarify is not null)
+					return true;
+				}
+				case DialogState.Clarifying:
+				{
+					if (questionToClarify is null)
 					{
-						var clarifyResult = await ClarifyingProcess(message);
-
-						if (clarifyResult.NeedСlarification)
-						{
-							clarifyingDialog.ClearDialog(false);
-							return clarifyResult.ClarificationQuestion!;
-						}
-						else
-						{
-							questionsToAnswer.Enqueue(clarifyResult.FinalMessage!);
-							break;
-						}
+						throw new ArgumentNullException("questionToClarify is null");
 					}
 
-					if (separatedQuestions!.Count == 0)
+					var resultString = await userDialog.SendMessage(questionToClarify);
+					var result = JsonSerializer.Deserialize<HelperResponse>(resultString);
+
+					if (result is null)
 					{
-						currentState = DialogState.Answering;
-						return await Process(message);
+						throw new Exception("Can't parse answer");
+					}
+
+					if (result.NeedСlarification)
+					{
+						questionToClarify = result.ClarificationQuestion;
 					}
 					else
 					{
-						var questionToClarify = separatedQuestions.Dequeue();
-						var clarifyResult = await ClarifyingProcess(questionToClarify);
-
-						if (clarifyResult.NeedСlarification)
-						{
-							return clarifyResult.ClarificationQuestion!;
-						}
-						else
-						{
-							questionsToAnswer.Enqueue(clarifyResult.FinalMessage!);
-							break;
-						}
-
+						outputMessage += result.Response + Environment.NewLine;
+						currentState = DialogState.Answering;
 					}
+
+					return true;
+				}
 				case DialogState.Cleansing:
+				{
 					StateLogging(loggingEnabled);
 					currentState = DialogState.Awaiting;
-					return await CleansingAnswer("");
+					outputMessage = await CleansingAnswer(outputMessage);
+					return true;
+				}
 
 				default:
 					throw new Exception("Incorrect State");
@@ -187,18 +213,6 @@ namespace GPTProject.Core
 			}
 			cleansingDialog.ClearDialog(false);
 			return cleanisingAnswer;
-		}
-		private async Task<ClarifyingResponse> ClarifyingProcess(string questionToClarify)
-		{
-			var clarifyingResultString = await clarifyingDialog.SendMessage(questionToClarify);
-			var clarifyingResult = JsonSerializer.Deserialize<ClarifyingResponse>(clarifyingResultString);
-
-			if (clarifyingResult == null )
-			{
-				throw new Exception("Can't get clarification");
-			}
-
-			return clarifyingResult;
 		}
 		private async Task<HelperResponse> GetAnswer(string userPrompt)
 		{
@@ -346,14 +360,14 @@ namespace GPTProject.Core
 				$"\r\nОтвечайте в профессиональном и дружелюбном тоне." +
 				$" Если пользователь задал вопрос не по теме, то отвечай что это не входит в твои обязанности." +
 				"\r\n\r\nОтвет должен быть предоставлен в формате JSON со следующей структурой:" +
-				"\"needСlarification\": <true если тебе хватает знаний ответить на вопрос или вопрос не по теме; false если тебе неоьходимо уточнение>," +
+				"\"{ needСlarification\": <true если тебе хватает знаний ответить на вопрос или вопрос не по теме; false если тебе необходимо уточнение>," +
 				"\"response\": \"<ответ пользователелю (пустое, если надо уточнять)>\"," +
 				"\"clarificationQuestion\": \"<уточняющий вопрос, который необходимо передать пользователю (пустое, если уточнения не нужны)> }" +
 				$"\r\nТвоя база знаний: ";
 
 			if (sources is null)
 			{
-				systemPrompt += "Твоя база знаний пуста, поскольку пользователь задал нейтральный вопрос";
+				systemPrompt += "Твоя база знаний пуста, поскольку пользователь задал нейтральный вопрос, ответь на него исходя из текущего текста, не выдумывай ничего лишнего";
 
 			}
 			else
@@ -426,8 +440,11 @@ namespace GPTProject.Core
 
 	public class HelperResponse
 	{
+		[JsonPropertyName("clarificationQuestion")]
 		public string? ClarificationQuestion { get; set; }
+		[JsonPropertyName("response")]
 		public string? Response { get; set; }
+		[JsonPropertyName("needСlarification")]
 		public bool NeedСlarification { get; set; }
 	}
 
@@ -449,3 +466,43 @@ namespace GPTProject.Core
 		Error
 	}
 }
+
+//case DialogState.Clarifying://возможно стоит объединить с системным промптом, запускать его если основной бот скажет что ему не хватает информации
+//    StateLogging(loggingEnabled);
+//    if (questionToClarify is not null)
+//    {
+//        var clarifyResult = await ClarifyingProcess(message);
+
+//        if (clarifyResult.NeedСlarification)
+//        {
+//            clarifyingDialog.ClearDialog(false);
+//            return clarifyResult.ClarificationQuestion!;
+//        }
+//        else
+//        {
+//            questionsToAnswer.Enqueue(clarifyResult.FinalMessage!);
+//            break;
+//        }
+//    }
+
+//    if (separatedQuestions!.Count == 0)
+//    {
+//        currentState = DialogState.Answering;
+//        return await Process(message);
+//    }
+//    else
+//    {
+//        var questionToClarify = separatedQuestions.Dequeue();
+//        var clarifyResult = await ClarifyingProcess(questionToClarify);
+
+//        if (clarifyResult.NeedСlarification)
+//        {
+//            return clarifyResult.ClarificationQuestion!;
+//        }
+//        else
+//        {
+//            questionsToAnswer.Enqueue(clarifyResult.FinalMessage!);
+//            break;
+//        }
+
+//    }

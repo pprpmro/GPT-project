@@ -22,8 +22,7 @@ namespace GPTProject.ConsoleUI
 			{
 				while (true)
 				{
-					if (helper.DialogState == DialogState.Awaiting ||
-						helper.DialogState == DialogState.Clarifying)
+					if (helper.DialogState == DialogState.Awaiting || helper.DialogState == DialogState.Cleansing)
 					{
 						var userMessage = "";
 						userMessage = Console.ReadLine();
@@ -36,7 +35,14 @@ namespace GPTProject.ConsoleUI
 
 						}
 						Console.ResetColor();
-						var result = helper.Process(userMessage);
+						helper.SetCurrentUserMessage(userMessage);
+					}
+
+					var isFailed = helper.Process().Result;
+
+					if (helper.DialogState == DialogState.Awaiting || helper.DialogState == DialogState.Cleansing)
+					{
+						var result = helper.GetOutputMessage();
 						Console.WriteLine(result);
 					}
 				}
