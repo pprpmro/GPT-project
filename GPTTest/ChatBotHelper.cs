@@ -54,6 +54,7 @@ namespace GPTProject.Core
 			this.clarifyingDialog.SetSystemPrompt(message: GetClarifyingPrompt());
 
 			this.availableTypesAndFileNames = GetAvailableTypesAndFileNames(filePaths);
+			this.classificationDialog.SetSystemPrompt(message: GetClassificationPrompt(AvailableTypes));
 			this.currentState = DialogState.Awaiting;
 		}
 
@@ -73,7 +74,7 @@ namespace GPTProject.Core
 			{
 				case DialogState.Awaiting:
 					answeringResult = "";
-                    StateLogging(loggingEnabled);
+					StateLogging(loggingEnabled);
 					currentState = DialogState.Separating;
 					return await Process(message);
 				case DialogState.Separating:
@@ -253,7 +254,6 @@ namespace GPTProject.Core
 			{
 				throw new Exception("Types dont exist");
 			}
-			classificationDialog.SetSystemPrompt(message: GetClassificationPrompt(AvailableTypes));
 			var typesString = await classificationDialog.SendMessage(userPrompt);
 			var types = typesString.Split(new char[] { ';' });
 			var listOfTypes = new List<int>();
