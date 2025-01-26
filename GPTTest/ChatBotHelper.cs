@@ -1,5 +1,4 @@
-﻿using System;
-using System.Text.Json;
+﻿using System.Text.Json;
 using GPTProject.Core.Providers.ChatGPT;
 using GPTProject.Core.Providers.GigaChat;
 using GPTProject.Core.Providers.YandexGPT;
@@ -16,6 +15,12 @@ namespace GPTProject.Core
 		private readonly IChatDialog questionSeparatorDialog;
 
 		private readonly Dictionary<string, string> availableTypesAndFileNames;
+		private readonly string subjectArea;
+
+		private const bool loggingEnabled = true;
+
+		private string answeringResult = "";
+
 
 		private List<string> AvailableTypes
 		{
@@ -33,8 +38,10 @@ namespace GPTProject.Core
 
 		public ChatBotHelper(
 			Type providerType,
+			string subjectArea,
 			List<string> filePaths)
 		{
+			this.subjectArea = subjectArea;
 			this.classificationDialog = GetChatDialogProvider(providerType);
 			this.userDialog = GetChatDialogProvider(providerType);
 
@@ -42,13 +49,12 @@ namespace GPTProject.Core
 			this.clarifyingDialog = GetChatDialogProvider(providerType);
 			this.questionSeparatorDialog = GetChatDialogProvider(providerType);
 
-			this.cleansingDialog.SetSystemPrompt(message: GetClarifyingPrompt());
-			this.questionSeparatorDialog.SetSystemPrompt(message: GetQuestionSeparatorPrompt());
+			this.cleansingDialog.SetSystemPrompt(message: GetСleansingPrompt());
+			this.questionSeparatorDialog.SetSystemPrompt(message: GetQuestionSeparatingPrompt());
 			this.clarifyingDialog.SetSystemPrompt(message: GetClarifyingPrompt());
 
-			availableTypesAndFileNames = GetAvailableTypesAndFileNames(filePaths);
-
-			currentState = DialogState.Awaiting;
+			this.availableTypesAndFileNames = GetAvailableTypesAndFileNames(filePaths);
+			this.currentState = DialogState.Awaiting;
 		}
 
 		private DialogState currentState;
@@ -66,15 +72,50 @@ namespace GPTProject.Core
 			switch (currentState)
 			{
 				case DialogState.Awaiting:
-					StateLogging();
+					answeringResult = "";
+                    StateLogging(loggingEnabled);
 					currentState = DialogState.Separating;
 					return await Process(message);
 				case DialogState.Separating:
-					StateLogging();
-					var result = await SeparateQuestion(message); //TODO Handle this bool value
+					StateLogging(loggingEnabled);
+					var success = await SeparateQuestion(message);
+					if (success)
+					{
+						currentState = DialogState.Clarifying;
+					}
+					{
+						currentState = DialogState.Error;
+					}
 					return await Process(message);
-				case DialogState.Clarifying:
-					StateLogging();
+				case DialogState.Answering:
+					StateLogging(loggingEnabled);
+					var needCleansing = questionsToAnswer.Count == 1;
+
+					while(questionsToAnswer.Count == 0)
+					{
+						var questionToAnswer = questionsToAnswer.Dequeue();
+						var partialAnswer = await GetAnswer(questionToAnswer);
+
+						if (partialAnswer.NeedСlarification)
+						{
+							return partialAnswer.Response!;
+						}
+
+						answeringResult += partialAnswer + Environment.NewLine;
+					}
+
+					if (needCleansing)
+					{
+						currentState = DialogState.Cleansing;
+					}
+					else
+					{
+						currentState = DialogState.Awaiting;
+					}
+
+					return answeringResult;
+				case DialogState.Clarifying://возможно стоит объединить с системным промптом, запускать его если основной бот скажет что ему не хватает информации
+					StateLogging(loggingEnabled);
 					if (questionToClarify is not null)
 					{
 						var clarifyResult = await ClarifyingProcess(message);
@@ -112,29 +153,8 @@ namespace GPTProject.Core
 						}
 
 					}
-				case DialogState.Answering:
-					StateLogging();
-					var answeringResult = "";
-
-					if (questionsToAnswer.Count == 1)
-					{
-						currentState = DialogState.Cleansing;
-					}
-					else
-					{
-						currentState = DialogState.Awaiting;
-					}
-
-					while(questionsToAnswer.Count == 0)
-					{
-						var questionToAnswer = questionsToAnswer.Dequeue();
-						var partialAnswer = await GetAnswer(questionToAnswer);
-
-						answeringResult += partialAnswer + Environment.NewLine;
-					}
-					return answeringResult;
 				case DialogState.Cleansing:
-					StateLogging();
+					StateLogging(loggingEnabled);
 					currentState = DialogState.Awaiting;
 					return await CleansingAnswer("");
 
@@ -152,8 +172,6 @@ namespace GPTProject.Core
 			{
 				throw new Exception("Пользователь не задал ни одного вопроса");
 			}
-
-			currentState = DialogState.Clarifying;
 			separatedQuestions = new Queue<string>( separatedQuestionsString.Split(new char[] { ';' }));//Небезопасно если в ходе текста встретится такой символ
 			questionSeparatorDialog.ClearDialog(false);
 			return true;
@@ -181,35 +199,53 @@ namespace GPTProject.Core
 
 			return clarifyingResult;
 		}
-		private async Task<string> GetAnswer(string userPrompt)
+		private async Task<HelperResponse> GetAnswer(string userPrompt)
 		{
 			var sourceTypeIndexes = await GetSourcesTypeByUserPrompt(userPrompt);
 			if (sourceTypeIndexes.Count == 0)
 			{
-				return "Некорректный запрос";
+				return new HelperResponse
+				{
+					NeedСlarification = false,
+					Response = "Некорректный запрос"
+				};
 			}
 
 			var isEqual = lastSourceTypeIndexes?.SequenceEqual<int>(sourceTypeIndexes) ?? false;
 
 			if (!isEqual)
 			{
-				var sources = new List<string>();
-				foreach (var index in sourceTypeIndexes)
+				if (sourceTypeIndexes.Contains(AvailableTypes.Count))
 				{
-					var sourceType = AvailableTypes[index];
-					var path = availableTypesAndFileNames[sourceType];
-					var source = GetSourceByPath(path);
-					if (string.IsNullOrEmpty(source))
-					{
-						throw new Exception("Source was null");
-					}
-					sources.Add(source);
+					userDialog.ReplaceSystemPrompt(message: GetSystemPrompt(subjectArea, null), clearDialog: false);
 				}
-				userDialog.ReplaceSystemPrompt(message: GetSystemPrompt(sources), clearDialog: false);
+				else
+				{
+					var sources = new List<string>();
+					foreach (var index in sourceTypeIndexes)
+					{
+						var sourceType = AvailableTypes[index];
+						var path = availableTypesAndFileNames[sourceType];
+						var source = GetSourceByPath(path);
+						if (string.IsNullOrEmpty(source))
+						{
+							throw new Exception("Source was null");
+						}
+						sources.Add(source);
+					}
+					userDialog.ReplaceSystemPrompt(message: GetSystemPrompt(subjectArea, sources), clearDialog: false);
+				}
 				lastSourceTypeIndexes = sourceTypeIndexes;
 			}
 
-			return await userDialog.SendMessage(userPrompt);
+			var resultString = await userDialog.SendMessage(userPrompt);
+			var result = JsonSerializer.Deserialize<HelperResponse>(resultString);
+
+			if (result is not null)
+			{
+				return result;
+			}
+			throw new Exception("Can't parse answer");
 		}
 		private async Task<List<int>> GetSourcesTypeByUserPrompt(string userPrompt)
 		{
@@ -286,28 +322,47 @@ namespace GPTProject.Core
 			}
 		}
 
-		public void StateLogging(bool active = true)
+		//Move to ILogger
+		public void StateLogging(bool enabled)
 		{
-			Console.ForegroundColor = ConsoleColor.Blue;
-			Console.WriteLine("Current state is " + currentState.ToString());
-			Console.ResetColor();
+			if (enabled)
+			{
+				Console.ForegroundColor = ConsoleColor.Blue;
+				Console.WriteLine("Current state is " + currentState.ToString());
+				Console.ResetColor();
+			}
 		}
 
 		#region Propmpts
-		private static string GetSystemPrompt(List<string> sources)
+
+		//тоже переопределить в JSON объект с флагом что нужно уточнять, полем для уточнения и полем для ответа
+		private static string GetSystemPrompt(string subjectArea, List<string>? sources, string? additionalInstructions = "") //TODO
 		{
-			var systemPrompt =
-				$"Я хочу чтобы ты выступил в роле консультанта магазина по продаже рукодельных ножей определенным вопросом, ты не должен отвечать на все подряд." +
-				$" Для ответов пользователям используй только предоставленную базу знаний, не выдумывай ничего лишнего, если тебе не хватает знаний ответить на вопрос, скажи:" +
-				$"\"Мне не хватает знаний ответить на это\"." +
+			var systemPrompt = $"Вы являетесь интеллектуальным помощником, обученным на базе знаний по теме: {subjectArea}." +
+				$"Ваша задача – предоставлять точные, лаконичные и понятные ответы пользователям на основе информации из базы знаний." +
+				$"\r\nЕсли пользовательский вопрос имеет однозначный ответ в базе знаний, предоставьте его. " +
+				$"\r\nЕсли тебе не хватает знаний ответить на вопрос, скажи: Мне не хватает знаний ответить на это" +
+				$"\r\nИзбегайте предположений, не подтвержденных содержимым базы знаний. Не врите не выдумывайте" +
+				$"\r\nОтвечайте в профессиональном и дружелюбном тоне." +
 				$" Если пользователь задал вопрос не по теме, то отвечай что это не входит в твои обязанности." +
-				$" Твоя база знаний:";
+				"\r\n\r\nОтвет должен быть предоставлен в формате JSON со следующей структурой:" +
+				"\"needСlarification\": <true если тебе хватает знаний ответить на вопрос или вопрос не по теме; false если тебе неоьходимо уточнение>," +
+				"\"response\": \"<ответ пользователелю (пустое, если надо уточнять)>\"," +
+				"\"clarificationQuestion\": \"<уточняющий вопрос, который необходимо передать пользователю (пустое, если уточнения не нужны)> }" +
+				$"\r\nТвоя база знаний: ";
 
-			foreach (var source in sources)
+			if (sources is null)
 			{
-				systemPrompt += $"{Environment.NewLine}{source}";
-			}
+				systemPrompt += "Твоя база знаний пуста, поскольку пользователь задал нейтральный вопрос";
 
+			}
+			else
+			{
+				foreach (var source in sources)
+				{
+					systemPrompt += $"{Environment.NewLine}{source}";
+				}
+			}
 			return systemPrompt;
 		}
 
@@ -316,7 +371,7 @@ namespace GPTProject.Core
 			var index = 0;
 			var classificationPrompt =
 				"Ты выступаешь в роли классификатора, котрый будет определять тип сообщения от пользователя на основе текущего и предыдущего ответов." +
-				$" Твой ответ должен содержать только одну цифру." +
+				$" Твой ответ должен содержать только цифры, разделенные символом ;" +
 				$" Не выходи за рамки этих ответов, если пользователь спрашивает что-то выходящее за рамки предметной области, напиши -1.";
 
 			foreach (var type in types)
@@ -326,11 +381,14 @@ namespace GPTProject.Core
 				classificationPrompt += typeDescription;
 				index++;
 			}
+			classificationPrompt += $"Если вопрос относится к нейтральной катерогии, например привестствие, прощание, благодарности, вопросы о том кто ты, напиши только: {types.Count}";
+
 			return classificationPrompt;
 		}
 
 		private static string GetClarifyingPrompt()
 		{
+			// пока просто добавить subjectArea, чтобы вопрос хоть в теме был
 			return "Если предоставленных пользователем данных недостаточно для выполнения запроса или запрос содержит неоднозначности, " +
 				"ты должен задать уточняющий вопрос, чтобы уточнить детали или запросить недостающую информацию." +
 				"Не пытайся угадывать или делать предположения без достаточных оснований." +
@@ -354,7 +412,7 @@ namespace GPTProject.Core
 				"\r\nНе добавляй информацию от себя, не придумывай и не интерпретируй данные иначе, чем они представлены." +
 				"\r\nСохраняй последовательность и структуру, делая текст максимально понятным и компактным для читателя.";
 		}
-		private static string GetQuestionSeparatorPrompt()
+		private static string GetQuestionSeparatingPrompt()
 		{
 			return "Ты должен проанализировать текст, который я тебе предоставлю, чтобы выявить все вопросы. Вопросы должны быть:" +
 				"\r\nПолными и самодостаточными — каждый вопрос должен содержать всю необходимую информацию и не ссылаться на другие вопросы." +
@@ -364,6 +422,13 @@ namespace GPTProject.Core
 				"\r\nНе добавляй ничего от себя.";
 		}
 		#endregion
+	}
+
+	public class HelperResponse
+	{
+		public string? ClarificationQuestion { get; set; }
+		public string? Response { get; set; }
+		public bool NeedСlarification { get; set; }
 	}
 
 	public class ClarifyingResponse

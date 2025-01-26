@@ -7,12 +7,12 @@ namespace GPTProject.ConsoleUI
 	{
 		static void Main(string[] args)
 		{
-
+			var subjectArea = "Знаток о динозаврах, можешь рассказать о некоторых видах.";
 			var startPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\..\"));
 			string sourcesFolderPath = Path.Combine(startPath, @"GPTProject.ConsoleUI\Sources");
 			List<string> txtFiles = GetTxtFiles(sourcesFolderPath);
 
-			var helper = new ChatBotHelper(Type.ChatGPT, txtFiles);
+			var helper = new ChatBotHelper(Type.ChatGPT, subjectArea, txtFiles);
 
 			Console.ForegroundColor = ConsoleColor.Green;
 			Console.WriteLine("ChatBotHelper готов к работе");
