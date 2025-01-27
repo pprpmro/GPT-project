@@ -168,7 +168,7 @@ namespace GPTProject.Core
 					}
 					else
 					{
-						outputMessage += result.Response + Environment.NewLine;
+						outputMessage = result.Response + Environment.NewLine;
 						currentState = DialogState.Replying;
 					}
 
@@ -267,7 +267,9 @@ namespace GPTProject.Core
 				throw new Exception("Types dont exist");
 			}
 			var typesString = await classificationDialog.SendMessage(userPrompt);
+			ClassificationLogging(loggingEnabled, typesString);
 			var types = typesString.Split(new char[] { ';' });
+
 			var listOfTypes = new List<int>();
 
 			for (int i = 0; i < types.Length; i++)
@@ -328,7 +330,7 @@ namespace GPTProject.Core
 		}
 
 		//Move to ILogger
-		public void StateLogging(bool enabled)
+		private void StateLogging(bool enabled)
 		{
 			if (enabled)
 			{
@@ -337,10 +339,17 @@ namespace GPTProject.Core
 				Console.ResetColor();
 			}
 		}
+		private void ClassificationLogging(bool enabled, string types)
+		{
+			if (enabled)
+			{
+				Console.ForegroundColor = ConsoleColor.Cyan;
+				Console.WriteLine("Classes of question: " + types);
+				Console.ResetColor();
+			}
+		}
 
 		#region Propmpts
-
-		//тоже переопределить в JSON объект с флагом что нужно уточнять, полем для уточнения и полем для ответа
 		private static string GetSystemPrompt(string subjectArea, List<string>? sources, string? additionalInstructions = "") //TODO
 		{
 			if (sources is null)
@@ -418,13 +427,6 @@ namespace GPTProject.Core
 		public bool NeedСlarification { get; set; }
 	}
 
-	public class ClarifyingResponse
-	{
-		public string? OriginalMessage { get; set; }
-		public string? ClarificationQuestion { get; set; }
-		public string? FinalMessage { get; set; }
-		public bool NeedСlarification { get; set; }
-	}
 
 	public enum DialogState
 	{
