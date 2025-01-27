@@ -96,7 +96,15 @@ namespace GPTProject.Core.Providers.ChatGPT
 				throw new Exception("No choices were returned by the API");
 			}
 
-			return choices[0].Message.Content.Trim();
+			var choice = choices[0].Message.Content.Trim();
+
+			messagesHistory.Add(new Message()
+			{
+				Role = Role.Assistant,
+				Content = choice
+			});
+
+			return choice;
 		}
 	}
 }
