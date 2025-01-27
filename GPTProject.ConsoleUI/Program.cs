@@ -22,7 +22,7 @@ namespace GPTProject.ConsoleUI
 			{
 				while (true)
 				{
-					if (helper.DialogState == DialogState.Awaiting || helper.DialogState == DialogState.Cleansing)
+					if (helper.DialogState == DialogState.Awaiting || helper.DialogState == DialogState.Clarifying)
 					{
 						var userMessage = "";
 						userMessage = Console.ReadLine();
@@ -40,7 +40,7 @@ namespace GPTProject.ConsoleUI
 
 					var isFailed = helper.Process().Result;
 
-					if (helper.DialogState == DialogState.Awaiting || helper.DialogState == DialogState.Cleansing)
+					if (helper.DialogState == DialogState.Awaiting || helper.DialogState == DialogState.Clarifying)
 					{
 						var result = helper.GetOutputMessage();
 						Console.WriteLine(result);

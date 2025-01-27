@@ -14,7 +14,6 @@ namespace GPTProject.Core
 		private readonly IChatDialog classificationDialog;
 
 		private readonly IChatDialog cleansingDialog;
-		private readonly IChatDialog clarifyingDialog;
 		private readonly IChatDialog questionSeparatorDialog;
 
 		private readonly Dictionary<string, string> availableTypesAndFileNames;
@@ -49,12 +48,10 @@ namespace GPTProject.Core
 			this.userDialog = GetChatDialogProvider(providerType);
 
 			this.cleansingDialog = GetChatDialogProvider(providerType);
-			this.clarifyingDialog = GetChatDialogProvider(providerType);
 			this.questionSeparatorDialog = GetChatDialogProvider(providerType);
 
 			this.cleansingDialog.SetSystemPrompt(message: GetСleansingPrompt());
 			this.questionSeparatorDialog.SetSystemPrompt(message: GetQuestionSeparatingPrompt());
-			this.clarifyingDialog.SetSystemPrompt(message: GetClarifyingPrompt());
 
 			this.availableTypesAndFileNames = GetAvailableTypesAndFileNames(filePaths);
 			this.classificationDialog.SetSystemPrompt(message: GetClassificationPrompt(AvailableTypes));
@@ -152,12 +149,12 @@ namespace GPTProject.Core
 				}
 				case DialogState.Clarifying:
 				{
-					if (questionToClarify is null)
+					if (currentUserMessage is null)
 					{
 						throw new ArgumentNullException("questionToClarify is null");
 					}
 
-					var resultString = await userDialog.SendMessage(questionToClarify);
+					var resultString = await userDialog.SendMessage(currentUserMessage);
 					var result = JsonSerializer.Deserialize<HelperResponse>(resultString);
 
 					if (result is null)
@@ -217,7 +214,7 @@ namespace GPTProject.Core
 		private async Task<HelperResponse> GetAnswer(string userPrompt)
 		{
 			var sourceTypeIndexes = await GetSourcesTypeByUserPrompt(userPrompt);
-			if (sourceTypeIndexes.Count == 0)
+			if (sourceTypeIndexes.Count == 0 || sourceTypeIndexes.Contains(-1) || sourceTypeIndexes.Contains(6))//TODO сделать более грамотное отсеивание некорректный запросов
 			{
 				return new HelperResponse
 				{
@@ -241,6 +238,7 @@ namespace GPTProject.Core
 					{
 						var sourceType = AvailableTypes[index];
 						var path = availableTypesAndFileNames[sourceType];
+
 						var source = GetSourceByPath(path);
 						if (string.IsNullOrEmpty(source))
 						{
@@ -280,9 +278,6 @@ namespace GPTProject.Core
 					listOfTypes.Add(resultSource);
 				}
 			}
-
-			
-			classificationDialog.ClearDialog();
 			return listOfTypes;
 		}
 		private string GetSourceByPath(string path)
@@ -352,30 +347,28 @@ namespace GPTProject.Core
 		//тоже переопределить в JSON объект с флагом что нужно уточнять, полем для уточнения и полем для ответа
 		private static string GetSystemPrompt(string subjectArea, List<string>? sources, string? additionalInstructions = "") //TODO
 		{
+			if (sources is null)
+			{
+				return "Пользователь задал некорректный вопрос, скажи что ты не можешь ответить на этот вопрос, это вне твоих особенностей";
+
+			}
+
 			var systemPrompt = $"Вы являетесь интеллектуальным помощником, обученным на базе знаний по теме: {subjectArea}." +
-				$"Ваша задача – предоставлять точные, лаконичные и понятные ответы пользователям на основе информации из базы знаний." +
+				$"Ваша задача – предоставлять мксимально точные, краткие и понятные ответы пользователям на основе информации из базы знаний." +
+				$"Не нужно ее пересказывать, старайся именно ответить на вопрос" +
 				$"\r\nЕсли пользовательский вопрос имеет однозначный ответ в базе знаний, предоставьте его. " +
 				$"\r\nЕсли тебе не хватает знаний ответить на вопрос, скажи: Мне не хватает знаний ответить на это" +
 				$"\r\nИзбегайте предположений, не подтвержденных содержимым базы знаний. Не врите не выдумывайте" +
 				$"\r\nОтвечайте в профессиональном и дружелюбном тоне." +
 				$" Если пользователь задал вопрос не по теме, то отвечай что это не входит в твои обязанности." +
-				"\r\n\r\nОтвет должен быть предоставлен в формате JSON со следующей структурой:" +
+				"\r\nОтвет должен быть предоставлен в формате JSON со следующей структурой:" +
 				"\"{ needСlarification\": <true если тебе хватает знаний ответить на вопрос или вопрос не по теме; false если тебе необходимо уточнение>," +
 				"\"response\": \"<ответ пользователелю (пустое, если надо уточнять)>\"," +
 				"\"clarificationQuestion\": \"<уточняющий вопрос, который необходимо передать пользователю (пустое, если уточнения не нужны)> }" +
 				$"\r\nТвоя база знаний: ";
-
-			if (sources is null)
+			foreach (var source in sources)
 			{
-				systemPrompt += "Твоя база знаний пуста, поскольку пользователь задал нейтральный вопрос, ответь на него исходя из текущего текста, не выдумывай ничего лишнего";
-
-			}
-			else
-			{
-				foreach (var source in sources)
-				{
-					systemPrompt += $"{Environment.NewLine}{source}";
-				}
+				systemPrompt += $"{Environment.NewLine}{source}";
 			}
 			return systemPrompt;
 		}
@@ -386,6 +379,7 @@ namespace GPTProject.Core
 			var classificationPrompt =
 				"Ты выступаешь в роли классификатора, котрый будет определять тип сообщения от пользователя на основе текущего и предыдущего ответов." +
 				$" Твой ответ должен содержать только цифры, разделенные символом ;" +
+				$"Старайся не выделять все типы сразу, только если уверен что он действительно относится к вопросу" +
 				$" Не выходи за рамки этих ответов, если пользователь спрашивает что-то выходящее за рамки предметной области, напиши -1.";
 
 			foreach (var type in types)
@@ -395,26 +389,8 @@ namespace GPTProject.Core
 				classificationPrompt += typeDescription;
 				index++;
 			}
-			classificationPrompt += $"Если вопрос относится к нейтральной катерогии, например привестствие, прощание, благодарности, вопросы о том кто ты, напиши только: {types.Count}";
 
 			return classificationPrompt;
-		}
-
-		private static string GetClarifyingPrompt()
-		{
-			// пока просто добавить subjectArea, чтобы вопрос хоть в теме был
-			return "Если предоставленных пользователем данных недостаточно для выполнения запроса или запрос содержит неоднозначности, " +
-				"ты должен задать уточняющий вопрос, чтобы уточнить детали или запросить недостающую информацию." +
-				"Не пытайся угадывать или делать предположения без достаточных оснований." +
-				"Твои уточняющие вопросы должны быть:" +
-				"\r\nКраткими и ясными." +
-				"\r\nНацеленными на получение информации, необходимой для точного выполнения запроса." +
-				"\r\nУместными и по существу, исходя из предоставленных данных." +
-				"\r\n\r\nОтвет должен быть предоставлен в формате JSON со следующей структурой:" +
-				"{ \"originalMessage\": \"<текст, предоставленный пользователем>\"," +
-				"\"needСlarification\": <true или false>," +
-				"\"finalMessage\": \"<итоговое сообщение, содержащее оригинальное сообщение с уточнениями, если таковые есть (пустое, если надо уточнять)>\"," +
-				"\"clarificationQuestion\": \"<уточняющий вопрос, который необходимо передать пользователю (пустое, если уточнения не нужны)> }";
 		}
 
 		private static string GetСleansingPrompt()
@@ -428,12 +404,12 @@ namespace GPTProject.Core
 		}
 		private static string GetQuestionSeparatingPrompt()
 		{
-			return "Ты должен проанализировать текст, который я тебе предоставлю, чтобы выявить все вопросы. Вопросы должны быть:" +
+			return "Ты должен проанализировать текст, который я тебе предоставлю, чтобы выявить все вопросы. Не добавляй ничего от себя, если не хватает контекста просто верни вопрос без изменений." +
+				"Вопросы должны быть:" +
 				"\r\nПолными и самодостаточными — каждый вопрос должен содержать всю необходимую информацию и не ссылаться на другие вопросы." +
 				"\r\nЛогически разделенными — если вопросы похожи или ссылаются друг на друга, ты можешь объединить их в один." +
 				"\r\nСохраненными в том порядке, в котором они представлены пользователем." +
-				"\r\nРазделенными точкой с запятой (;) в итоговом списке. Если в тексте нет вопросов, просто верни пустую строку." +
-				"\r\nНе добавляй ничего от себя.";
+				"\r\nРазделенными точкой с запятой (;) в итоговом списке. Если в тексте нет вопросов, просто верни пустую строку.";
 		}
 		#endregion
 	}
