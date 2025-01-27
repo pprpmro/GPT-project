@@ -55,7 +55,7 @@ namespace GPTProject.Core
 
 			this.availableTypesAndFileNames = GetAvailableTypesAndFileNames(filePaths);
 			this.classificationDialog.SetSystemPrompt(message: GetClassificationPrompt(AvailableTypes));
-			this.currentState = DialogState.Awaiting;
+			this.currentState = DialogState.Waiting;
 		}
 
 		private DialogState currentState;
@@ -81,7 +81,7 @@ namespace GPTProject.Core
 		{
 			switch (currentState)
 			{
-				case DialogState.Awaiting:
+				case DialogState.Waiting:
 				{
 					outputMessage = "";
 					StateLogging(loggingEnabled);
@@ -98,7 +98,7 @@ namespace GPTProject.Core
 					var success = await SeparateQuestion(currentUserMessage);
 					if (success)
 					{
-						currentState = DialogState.Answering;
+						currentState = DialogState.Replying;
 					}
 					else
 					{
@@ -107,7 +107,7 @@ namespace GPTProject.Core
 					currentUserMessage = null;
 					return true;
 				}
-				case DialogState.Answering:
+				case DialogState.Replying:
 				{
 					StateLogging(loggingEnabled);
 
@@ -121,7 +121,7 @@ namespace GPTProject.Core
 					while (separatedQuestions.Count > 0)
 					{
 						var questionToAnswer = separatedQuestions.Dequeue();
-						var partialAnswer = await GetAnswer(questionToAnswer);
+						var partialAnswer = await GetReply(questionToAnswer);
 
 						if (partialAnswer.NeedСlarification)
 						{
@@ -137,11 +137,11 @@ namespace GPTProject.Core
 
 					if (needCleansing)
 					{
-						currentState = DialogState.Cleansing;
+						currentState = DialogState.Purging;
 					}
 					else
 					{
-						currentState = DialogState.Awaiting;
+						currentState = DialogState.Waiting;
 					}
 
 					return true;
@@ -169,16 +169,16 @@ namespace GPTProject.Core
 					else
 					{
 						outputMessage += result.Response + Environment.NewLine;
-						currentState = DialogState.Answering;
+						currentState = DialogState.Replying;
 					}
 
 					return true;
 				}
-				case DialogState.Cleansing:
+				case DialogState.Purging:
 				{
 					StateLogging(loggingEnabled);
-					currentState = DialogState.Awaiting;
-					outputMessage = await CleansingAnswer(outputMessage);
+					currentState = DialogState.Waiting;
+					outputMessage = await PurgingReply(outputMessage);
 					return true;
 				}
 
@@ -188,9 +188,9 @@ namespace GPTProject.Core
 			throw new Exception("Incorrect ending");
 		}
 
-		private async Task<bool> SeparateQuestion(string message)
+		private async Task<bool> SeparateQuestion(string userQuestion)
 		{
-			var separatedQuestionsString = await questionSeparatorDialog.SendMessage(message);
+			var separatedQuestionsString = await questionSeparatorDialog.SendMessage(userQuestion);
 
 			if (string.IsNullOrEmpty(separatedQuestionsString))
 			{
@@ -200,9 +200,9 @@ namespace GPTProject.Core
 			questionSeparatorDialog.ClearDialog(false);
 			return true;
 		}
-		private async Task<string> CleansingAnswer(string message)
+		private async Task<string> PurgingReply(string reply)
 		{
-			var cleanisingAnswer = await cleansingDialog.SendMessage(message);
+			var cleanisingAnswer = await cleansingDialog.SendMessage(reply);
 
 			if (string.IsNullOrEmpty(cleanisingAnswer))
 			{
@@ -211,10 +211,10 @@ namespace GPTProject.Core
 			cleansingDialog.ClearDialog(false);
 			return cleanisingAnswer;
 		}
-		private async Task<HelperResponse> GetAnswer(string userPrompt)
+		private async Task<HelperResponse> GetReply(string userPrompt)
 		{
 			var sourceTypeIndexes = await GetSourcesTypeByUserPrompt(userPrompt);
-			if (sourceTypeIndexes.Count == 0 || sourceTypeIndexes.Contains(-1) || sourceTypeIndexes.Contains(6))//TODO сделать более грамотное отсеивание некорректный запросов
+			if (sourceTypeIndexes.Count == 0 || sourceTypeIndexes.Contains(-1))//TODO сделать более грамотное отсеивание некорректный запросов
 			{
 				return new HelperResponse
 				{
@@ -310,10 +310,6 @@ namespace GPTProject.Core
 			{
 				throw new Exception("Files don't exist");
 			}
-
-			availableTypesAndFileNames.Add("Неопределено", String.Empty);
-
-
 			return availableTypesAndFileNames;
 		}
 		private IChatDialog GetChatDialogProvider(Type type)
@@ -432,51 +428,11 @@ namespace GPTProject.Core
 
 	public enum DialogState
 	{
-		Awaiting,
+		Waiting,
 		Separating,
 		Clarifying,
-		Answering,
-		Cleansing,
+		Replying,
+		Purging,
 		Error
 	}
 }
-
-//case DialogState.Clarifying://возможно стоит объединить с системным промптом, запускать его если основной бот скажет что ему не хватает информации
-//    StateLogging(loggingEnabled);
-//    if (questionToClarify is not null)
-//    {
-//        var clarifyResult = await ClarifyingProcess(message);
-
-//        if (clarifyResult.NeedСlarification)
-//        {
-//            clarifyingDialog.ClearDialog(false);
-//            return clarifyResult.ClarificationQuestion!;
-//        }
-//        else
-//        {
-//            questionsToAnswer.Enqueue(clarifyResult.FinalMessage!);
-//            break;
-//        }
-//    }
-
-//    if (separatedQuestions!.Count == 0)
-//    {
-//        currentState = DialogState.Answering;
-//        return await Process(message);
-//    }
-//    else
-//    {
-//        var questionToClarify = separatedQuestions.Dequeue();
-//        var clarifyResult = await ClarifyingProcess(questionToClarify);
-
-//        if (clarifyResult.NeedСlarification)
-//        {
-//            return clarifyResult.ClarificationQuestion!;
-//        }
-//        else
-//        {
-//            questionsToAnswer.Enqueue(clarifyResult.FinalMessage!);
-//            break;
-//        }
-
-//    }
