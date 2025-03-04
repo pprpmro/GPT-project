@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Text.RegularExpressions;
 using GPTProject.Core.Logger;
 using GPTProject.Core.Providers.ChatGPT;
 using GPTProject.Core.Providers.GigaChat;
@@ -13,6 +14,7 @@ namespace GPTProject.Core
 		private readonly IChatDialog classificationDialog;
 		private readonly IChatDialog cleansingDialog;
 		private readonly IChatDialog questionSeparatorDialog;
+		private readonly IChatDialog smallTalkDialog;
 		private readonly Dictionary<string, string> availableTypesAndFileNames;
 		private readonly string subjectArea;
 
@@ -52,11 +54,16 @@ namespace GPTProject.Core
 			this.cleansingDialog = GetChatDialogProvider(providerType);
 			this.questionSeparatorDialog = GetChatDialogProvider(providerType);
 
+			this.smallTalkDialog = GetChatDialogProvider(providerType);
+
 			this.cleansingDialog.SetSystemPrompt(message: PromptManager.GetCleansingPrompt());
 			this.questionSeparatorDialog.SetSystemPrompt(message: PromptManager.GetQuestionSeparatingPrompt());
 
 			this.availableTypesAndFileNames = GetAvailableTypesAndFileNames(filePaths);
 			this.classificationDialog.SetSystemPrompt(message: PromptManager.GetClassificationPrompt(AvailableTypes));
+
+			this.smallTalkDialog.SetSystemPrompt(message: PromptManager.GetSmallTalkPrompt());
+
 			this.currentState = DialogState.Waiting;
 		}
 
@@ -86,7 +93,7 @@ namespace GPTProject.Core
 			}
 			catch (Exception ex)
 			{
-				logger.Log($"Exception in Process(): {ex.Message}", LogLevel.Error);
+				logger.Log($"Exception in Process(): {ex.Message}\n{ex.StackTrace}", LogLevel.Error);
 				currentState = DialogState.Error;
 				return false;
 			}
@@ -102,6 +109,31 @@ namespace GPTProject.Core
 		{
 			logger.Log("Entered Error state", LogLevel.Error);
 			return false;
+		}
+		private async Task<bool> ProcessSmallTalkState()
+		{
+			if (string.IsNullOrWhiteSpace(currentUserMessage))
+			{
+				logger.Log( "User message is empty", LogLevel.Error);
+				return false;
+			}
+
+			var (smallTalkReply, filteredQuestions) = await ProcessSmallTalk(currentUserMessage);
+
+			if (smallTalkReply != "EMPTY")
+			{
+				outputMessage = smallTalkReply;
+			}
+
+			if (filteredQuestions == "EMPTY")
+			{
+				currentState = DialogState.Waiting;
+				return true;
+			}
+
+			currentUserMessage = filteredQuestions;
+			currentState = DialogState.Separating;
+			return true;
 		}
 		private async Task<bool> ProcessSeparatingState()
 		{
@@ -139,10 +171,8 @@ namespace GPTProject.Core
 					currentState = DialogState.Clarifying;
 					return true;
 				}
-				else
-				{
-					outputMessage += partialAnswer.Response + Environment.NewLine;
-				}
+
+				outputMessage += partialAnswer.Response + Environment.NewLine;
 			}
 
 			currentState = needCleansing ? DialogState.Purging : DialogState.Waiting;
@@ -263,15 +293,7 @@ namespace GPTProject.Core
 			userDialog.ReplaceSystemPrompt(PromptManager.GetSystemPrompt(subjectArea, sources), false);
 		}
 
-		private string GetSourceByPath(string path)
-		{
-			var result = string.Empty;
-			using (var reader = new StreamReader(path))
-			{
-				result = reader.ReadToEnd();
-			}
-			return result;
-		}
+		private string GetSourceByPath(string path) => File.ReadAllText(path);
 
 		private async Task<HelperResponse> FetchReplyFromBot(string userPrompt)
 		{
@@ -287,6 +309,18 @@ namespace GPTProject.Core
 			return result;
 		}
 
+		private async Task<(string smallTalkReply, string filteredQuestions)> ProcessSmallTalk(string userMessage)
+		{
+			var gptResponse = await smallTalkDialog.SendMessage(userMessage);
+			var smallTalkMatch = Regex.Match(gptResponse, @"SMALL_TALK:\s*(.*)");
+			var questionsMatch = Regex.Match(gptResponse, @"QUESTIONS:\s*(.*)");
+
+			string smallTalkReply = smallTalkMatch.Success ? smallTalkMatch.Groups[1].Value.Trim() : "EMPTY";
+			string filteredQuestions = questionsMatch.Success ? questionsMatch.Groups[1].Value.Trim() : "EMPTY";
+
+			return (smallTalkReply, filteredQuestions);
+		}
+
 		private Dictionary<string, string> GetAvailableTypesAndFileNames(List<string> filePaths)
 		{
 			var availableTypesAndFileNames = new Dictionary<string, string>();
@@ -294,12 +328,11 @@ namespace GPTProject.Core
 			{
 				if (File.Exists(filePath))
 				{
-					string fileName = Path.GetFileName(filePath);
-					availableTypesAndFileNames[fileName] = filePath;
+					availableTypesAndFileNames[Path.GetFileName(filePath)] = filePath;
 				}
 				else
 				{
-					Console.WriteLine($"Can't find: {filePath}");
+					logger.Log($"Can't find file: {filePath}", LogLevel.Warning);
 				}
 			}
 
@@ -310,20 +343,13 @@ namespace GPTProject.Core
 			return availableTypesAndFileNames;
 		}
 
-		private IChatDialog GetChatDialogProvider(Type type)
+		private IChatDialog GetChatDialogProvider(Type type) => type switch
 		{
-			switch (type)
-			{
-				case Type.ChatGPT:
-					return new ChatGPTDialog();
-				case Type.YandexGPT:
-					return new YandexGPTDialog();
-				case Type.GigaChat:
-					return new GigaChatDialog();
-				default:
-					throw new NotImplementedException();
-			}
-		}
+			Type.ChatGPT => new ChatGPTDialog(),
+			Type.YandexGPT => new YandexGPTDialog(),
+			Type.GigaChat => new GigaChatDialog(),
+			_ => throw new NotImplementedException()
+		};
 
 		private void StateLogging()
 		{
@@ -339,6 +365,7 @@ namespace GPTProject.Core
 	public enum DialogState
 	{
 		Waiting,
+		SmallTalk,
 		Separating,
 		Clarifying,
 		Replying,
