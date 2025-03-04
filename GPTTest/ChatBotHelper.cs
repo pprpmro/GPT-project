@@ -1,7 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using GPTProject.Common;
-using GPTProject.Core;
+using GPTProject.Core.Logger;
 using GPTProject.Core.Providers.ChatGPT;
 using GPTProject.Core.Providers.GigaChat;
 using GPTProject.Core.Providers.YandexGPT;
@@ -16,10 +15,9 @@ namespace GPTProject.Core
 		private readonly IChatDialog cleansingDialog;
 		private readonly IChatDialog questionSeparatorDialog;
 
+		private readonly ILogger logger;
 		private readonly Dictionary<string, string> availableTypesAndFileNames;
 		private readonly string subjectArea;
-
-		private const bool loggingEnabled = true;
 
 		private string outputMessage = "";
 
@@ -41,8 +39,10 @@ namespace GPTProject.Core
 		public ChatBotHelper(
 			Type providerType,
 			string subjectArea,
-			List<string> filePaths)
+			List<string> filePaths,
+			ILogger logger)
 		{
+			this.logger = logger;
 			this.subjectArea = subjectArea;
 			this.classificationDialog = GetChatDialogProvider(providerType);
 			this.userDialog = GetChatDialogProvider(providerType);
@@ -84,13 +84,13 @@ namespace GPTProject.Core
 				case DialogState.Waiting:
 				{
 					outputMessage = "";
-					StateLogging(loggingEnabled);
+					StateLogging();
 					currentState = DialogState.Separating;
 					return true;
 				}
 				case DialogState.Separating:
 				{
-					StateLogging(loggingEnabled);
+					StateLogging();
 					if (string.IsNullOrWhiteSpace(currentUserMessage))
 					{
 						throw new ArgumentException("currentUserMessage is null");
@@ -109,7 +109,7 @@ namespace GPTProject.Core
 				}
 				case DialogState.Replying:
 				{
-					StateLogging(loggingEnabled);
+					StateLogging();
 
 					if (separatedQuestions is null)
 					{
@@ -148,7 +148,7 @@ namespace GPTProject.Core
 				}
 				case DialogState.Clarifying:
 				{
-					StateLogging(loggingEnabled);
+					StateLogging();
 					if (currentUserMessage is null)
 					{
 						throw new ArgumentNullException("currentUserMessage is null");
@@ -176,7 +176,7 @@ namespace GPTProject.Core
 				}
 				case DialogState.Purging:
 				{
-					StateLogging(loggingEnabled);
+					StateLogging();
 					currentState = DialogState.Waiting;
 					outputMessage = await PurgingReply(outputMessage);
 					return true;
@@ -267,7 +267,7 @@ namespace GPTProject.Core
 				throw new Exception("Types dont exist");
 			}
 			var typesString = await classificationDialog.SendMessage(userPrompt);
-			ClassificationLogging(loggingEnabled, typesString);
+			ClassificationLogging(typesString);
 			var types = typesString.Split(new char[] { ';' });
 
 			var listOfTypes = new List<int>();
@@ -329,24 +329,14 @@ namespace GPTProject.Core
 			}
 		}
 
-		//Move to ILogger
-		private void StateLogging(bool enabled)
+		private void StateLogging()
 		{
-			if (enabled)
-			{
-				Console.ForegroundColor = ConsoleColor.Blue;
-				Console.WriteLine("Current state is " + currentState.ToString());
-				Console.ResetColor();
-			}
+			logger.Log($"Current state: {currentState}", LogLevel.Info);
 		}
-		private void ClassificationLogging(bool enabled, string types)
+
+		private void ClassificationLogging(string types)
 		{
-			if (enabled)
-			{
-				Console.ForegroundColor = ConsoleColor.Cyan;
-				Console.WriteLine("Classes of question: " + types);
-				Console.ResetColor();
-			}
+			logger.Log("Classes of question: " + types, LogLevel.Info);
 		}
 
 		#region Propmpts
