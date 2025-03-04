@@ -50,11 +50,11 @@ namespace GPTProject.Core
 			this.cleansingDialog = GetChatDialogProvider(providerType);
 			this.questionSeparatorDialog = GetChatDialogProvider(providerType);
 
-			this.cleansingDialog.SetSystemPrompt(message: GetСleansingPrompt());
-			this.questionSeparatorDialog.SetSystemPrompt(message: GetQuestionSeparatingPrompt());
+			this.cleansingDialog.SetSystemPrompt(message: PromptManager.GetCleansingPrompt());
+			this.questionSeparatorDialog.SetSystemPrompt(message: PromptManager.GetQuestionSeparatingPrompt());
 
 			this.availableTypesAndFileNames = GetAvailableTypesAndFileNames(filePaths);
-			this.classificationDialog.SetSystemPrompt(message: GetClassificationPrompt(AvailableTypes));
+			this.classificationDialog.SetSystemPrompt(message: PromptManager.GetClassificationPrompt(AvailableTypes));
 			this.currentState = DialogState.Waiting;
 		}
 
@@ -229,7 +229,7 @@ namespace GPTProject.Core
 			{
 				if (sourceTypeIndexes.Contains(AvailableTypes.Count))
 				{
-					userDialog.ReplaceSystemPrompt(message: GetSystemPrompt(subjectArea, null), clearDialog: false);
+					userDialog.ReplaceSystemPrompt(message: PromptManager.GetSystemPrompt(subjectArea, null), clearDialog: false);
 				}
 				else
 				{
@@ -246,7 +246,7 @@ namespace GPTProject.Core
 						}
 						sources.Add(source);
 					}
-					userDialog.ReplaceSystemPrompt(message: GetSystemPrompt(subjectArea, sources), clearDialog: false);
+					userDialog.ReplaceSystemPrompt(message: PromptManager.GetSystemPrompt(subjectArea, sources), clearDialog: false);
 				}
 				lastSourceTypeIndexes = sourceTypeIndexes;
 			}
@@ -338,73 +338,6 @@ namespace GPTProject.Core
 		{
 			logger.Log("Classes of question: " + types, LogLevel.Info);
 		}
-
-		#region Propmpts
-		private static string GetSystemPrompt(string subjectArea, List<string>? sources, string? additionalInstructions = "") //TODO
-		{
-			if (sources is null)
-			{
-				return "Пользователь задал некорректный вопрос, скажи что ты не можешь ответить на этот вопрос, это вне твоих особенностей";
-
-			}
-
-			var systemPrompt = $"Вы являетесь интеллектуальным помощником, обученным на базе знаний по теме: {subjectArea}." +
-				$"Ваша задача – предоставлять мксимально точные, краткие и понятные ответы пользователям на основе информации из базы знаний.Не нужно ее пересказывать, старайся именно ответить на вопрос" +
-				$"\r\nЕсли пользовательский вопрос имеет однозначный ответ в базе знаний, предоставьте его. " +
-				$"\r\nЕсли тебе не хватает знаний ответить на вопрос, скажи: Мне не хватает знаний ответить на это. Избегайте предположений, не подтвержденных содержимым базы знаний. Не ври не выдумывай" +
-				$"\r\nОтвечайте в профессиональном и дружелюбном тоне." +
-				$" Если пользователь задал вопрос не по теме, то отвечай что это не входит в твои обязанности." +
-				"\r\nОтвет должен быть предоставлен в формате JSON со следующей структурой:" +
-				"\"{ needСlarification\": <true если тебе хватает знаний ответить на вопрос или вопрос не по теме или пользователь спрашивает и уточняет что то не по теме; false если тебе необходимо уточнение>," +
-				"\"response\": \"<ответ пользователелю (пустое, если надо уточнять) или сообщение о том что пользователь задает некорректные вопросы>\"," +
-				"\"clarificationQuestion\": \"<уточняющий вопрос, который необходимо передать пользователю (пустое, если уточнения не нужны или пользователь задает некорректные вопросы)> }" +
-				$"\r\nТвоя база знаний: ";
-			foreach (var source in sources)
-			{
-				systemPrompt += $"{Environment.NewLine}{source}";
-			}
-			return systemPrompt;
-		}
-
-		private static string GetClassificationPrompt(List<string> types)
-		{
-			var index = 0;
-			var classificationPrompt =
-				"Ты выступаешь в роли классификатора, котрый будет определять тип сообщения от пользователя на основе текущего и предыдущего ответов." +
-				$" Твой ответ должен содержать только цифры, разделенные символом ;" +
-				$"Старайся не выделять все типы сразу, только если уверен что он действительно относится к вопросу" +
-				$" Не выходи за рамки этих ответов, если пользователь спрашивает что-то выходящее за рамки предметной области, напиши -1.";
-
-			foreach (var type in types)
-			{
-				var typeDescription = $"{Environment.NewLine}Если пользовательский запрос относится к теме {type}, напиши {index}";
-
-				classificationPrompt += typeDescription;
-				index++;
-			}
-
-			return classificationPrompt;
-		}
-
-		private static string GetСleansingPrompt()
-		{
-			return "Тебе предоставлен список ответов на разные вопросы. Твоя задача:" +
-				"\r\nОбъединить все ответы в единый текст без повторений." +
-				"\r\nСоставить ответ так, чтобы он был сжатым, логичным и емким." +
-				"\r\nНикакую информацию из предоставленных ответов нельзя пропускать или выкидывать." +
-				"\r\nНе добавляй информацию от себя, не придумывай и не интерпретируй данные иначе, чем они представлены." +
-				"\r\nСохраняй последовательность и структуру, делая текст максимально понятным и компактным для читателя.";
-		}
-		private static string GetQuestionSeparatingPrompt()
-		{
-			return "Ты должен проанализировать текст, который я тебе предоставлю, чтобы выявить все вопросы. Не добавляй ничего от себя, если не хватает контекста просто верни вопрос без изменений." +
-				"Вопросы должны быть:" +
-				"\r\nПолными и самодостаточными — каждый вопрос должен содержать всю необходимую информацию и не ссылаться на другие вопросы." +
-				"\r\nЛогически разделенными — если вопросы похожи или ссылаются друг на друга, ты можешь объединить их в один." +
-				"\r\nСохраненными в том порядке, в котором они представлены пользователем." +
-				"\r\nРазделенными точкой с запятой (;) в итоговом списке. Если в тексте нет вопросов, просто верни пустую строку.";
-		}
-		#endregion
 	}
 
 	public class HelperResponse
