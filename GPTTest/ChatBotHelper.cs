@@ -61,10 +61,7 @@ namespace GPTProject.Core
 		}
 
 
-		private Queue<string>? separatedQuestions = null;
-		
-
-		private Queue<string> questionsToAnswer = new Queue<string>();
+		public string GetOutputMessage() => outputMessage.Trim();
 
 		public void SetCurrentUserMessage(string message)
 		{
