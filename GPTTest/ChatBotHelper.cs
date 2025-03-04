@@ -1,5 +1,4 @@
 ﻿using System.Text.Json;
-using System.Text.Json.Serialization;
 using GPTProject.Core.Logger;
 using GPTProject.Core.Providers.ChatGPT;
 using GPTProject.Core.Providers.GigaChat;
@@ -9,16 +8,19 @@ namespace GPTProject.Core
 {
 	public class ChatBotHelper
 	{
+		private readonly ILogger logger;
 		private readonly IChatDialog userDialog;
 		private readonly IChatDialog classificationDialog;
-
 		private readonly IChatDialog cleansingDialog;
 		private readonly IChatDialog questionSeparatorDialog;
-
-		private readonly ILogger logger;
 		private readonly Dictionary<string, string> availableTypesAndFileNames;
 		private readonly string subjectArea;
 
+		private Queue<string> pendingQuestions = new();
+
+		private DialogState currentState;
+		private List<int>? lastSourceTypeIndexes = null;
+		private string? currentUserMessage;
 		private string outputMessage = "";
 
 
@@ -58,135 +60,125 @@ namespace GPTProject.Core
 			this.currentState = DialogState.Waiting;
 		}
 
-		private DialogState currentState;
-
 
 		private Queue<string>? separatedQuestions = null;
 		
 
 		private Queue<string> questionsToAnswer = new Queue<string>();
 
-		private List<int>? lastSourceTypeIndexes = null;
-
-		private string? currentUserMessage;
-
 		public void SetCurrentUserMessage(string message)
 		{
 			currentUserMessage = message;
 		}
 
-		public string GetOutputMessage() => outputMessage ?? "";
-
 		public async Task<bool> Process()
 		{
-			switch (currentState)
+			try
 			{
-				case DialogState.Waiting:
+				StateLogging();
+
+				return currentState switch
 				{
-					outputMessage = "";
-					StateLogging();
-					currentState = DialogState.Separating;
-					return true;
-				}
-				case DialogState.Separating:
-				{
-					StateLogging();
-					if (string.IsNullOrWhiteSpace(currentUserMessage))
-					{
-						throw new ArgumentException("currentUserMessage is null");
-					}
-					var success = await SeparateQuestion(currentUserMessage);
-					if (success)
-					{
-						currentState = DialogState.Replying;
-					}
-					else
-					{
-						currentState = DialogState.Error;
-					}
-					currentUserMessage = null;
-					return true;
-				}
-				case DialogState.Replying:
-				{
-					StateLogging();
-
-					if (separatedQuestions is null)
-					{
-						throw new Exception("separatedQuestions is null");
-					}
-
-					var needCleansing = questionsToAnswer.Count > 1;
-
-					while (separatedQuestions.Count > 0)
-					{
-						var questionToAnswer = separatedQuestions.Dequeue();
-						var partialAnswer = await GetReply(questionToAnswer);
-
-						if (partialAnswer.NeedСlarification)
-						{
-							outputMessage = partialAnswer.ClarificationQuestion;
-							currentState = DialogState.Clarifying;
-							return true;
-						}
-						else
-						{
-							outputMessage += partialAnswer.Response + Environment.NewLine;
-						}
-					}
-
-					if (needCleansing)
-					{
-						currentState = DialogState.Purging;
-					}
-					else
-					{
-						currentState = DialogState.Waiting;
-					}
-
-					return true;
-				}
-				case DialogState.Clarifying:
-				{
-					StateLogging();
-					if (currentUserMessage is null)
-					{
-						throw new ArgumentNullException("currentUserMessage is null");
-					}
-
-					var resultString = await userDialog.SendMessage(currentUserMessage);
-					var result = JsonSerializer.Deserialize<HelperResponse>(resultString);
-
-					if (result is null)
-					{
-						throw new Exception("Can't parse answer");
-					}
-
-					if (result.NeedСlarification)
-					{
-						outputMessage = result.ClarificationQuestion;
-					}
-					else
-					{
-						outputMessage = result.Response + Environment.NewLine;
-						currentState = DialogState.Replying;
-					}
-
-					return true;
-				}
-				case DialogState.Purging:
-				{
-					StateLogging();
-					currentState = DialogState.Waiting;
-					outputMessage = await PurgingReply(outputMessage);
-					return true;
-				}
-
-				default:
-					throw new Exception("Incorrect State");
+					DialogState.Waiting => ProcessWaitingState(),
+					DialogState.Separating => await ProcessSeparatingState(),
+					DialogState.Replying => await ProcessReplyingState(),
+					DialogState.Clarifying => await ProcessClarifyingState(),
+					DialogState.Purging => await ProcessPurgingState(),
+					_ => ProcessErrorState()
+				};
 			}
-			throw new Exception("Incorrect ending");
+			catch (Exception ex)
+			{
+				logger.Log($"Exception in Process(): {ex.Message}", LogLevel.Error);
+				currentState = DialogState.Error;
+				return false;
+			}
 		}
+
+		private bool ProcessWaitingState()
+		{
+			outputMessage = "";
+			currentState = DialogState.Separating;
+			return true;
+		}
+		private bool ProcessErrorState()
+		{
+			logger.Log("Entered Error state", LogLevel.Error);
+			return false;
+		}
+		private async Task<bool> ProcessSeparatingState()
+		{
+			if (string.IsNullOrWhiteSpace(currentUserMessage))
+			{
+				logger.Log("currentUserMessage is null", LogLevel.Error);
+				return false;
+			}
+
+			pendingQuestions.Clear();
+			var success = await SeparateQuestion(currentUserMessage);
+			currentState = success ? DialogState.Replying : DialogState.Error;
+			currentUserMessage = null;
+			return success;
+		}
+		private async Task<bool> ProcessReplyingState()
+		{
+			if (pendingQuestions.Count == 0)
+			{
+				logger.Log("No questions to process", LogLevel.Error);
+				return false;
+			}
+
+			bool needCleansing = pendingQuestions.Count > 1;
+			outputMessage = "";
+
+			while (pendingQuestions.Count > 0)
+			{
+				var questionToAnswer = pendingQuestions.Dequeue();
+				var partialAnswer = await GetReply(questionToAnswer);
+
+				if (partialAnswer.NeedСlarification)
+				{
+					outputMessage = partialAnswer.ClarificationQuestion;
+					currentState = DialogState.Clarifying;
+					return true;
+				}
+				else
+				{
+					outputMessage += partialAnswer.Response + Environment.NewLine;
+				}
+			}
+
+			currentState = needCleansing ? DialogState.Purging : DialogState.Waiting;
+			return true;
+		}
+		private async Task<bool> ProcessClarifyingState()
+		{
+			if (currentUserMessage is null)
+			{
+				logger.Log("currentUserMessage is null", LogLevel.Error);
+				return false;
+			}
+
+			var resultString = await userDialog.SendMessage(currentUserMessage);
+			var result = JsonSerializer.Deserialize<HelperResponse>(resultString);
+
+			if (result is null)
+			{
+				logger.Log("Can't parse answer", LogLevel.Error);
+				return false;
+			}
+
+			outputMessage = result.NeedСlarification ? result.ClarificationQuestion : result.Response + Environment.NewLine;
+			currentState = result.NeedСlarification ? DialogState.Clarifying : DialogState.Replying;
+			return true;
+		}
+		private async Task<bool> ProcessPurgingState()
+		{
+			outputMessage = await PurgingReply(outputMessage);
+			currentState = DialogState.Waiting;
+			return true;
+		}
+
 
 		private async Task<bool> SeparateQuestion(string userQuestion)
 		{
@@ -194,94 +186,86 @@ namespace GPTProject.Core
 
 			if (string.IsNullOrEmpty(separatedQuestionsString))
 			{
-				throw new Exception("Пользователь не задал ни одного вопроса");
+				logger.Log("Пользователь не задал ни одного вопроса", LogLevel.Error);
+				return false;
 			}
-			separatedQuestions = new Queue<string>( separatedQuestionsString.Split(new char[] { ';' }));//Небезопасно если в ходе текста встретится такой символ
+
+			pendingQuestions = new Queue<string>(separatedQuestionsString.Split(';'));
 			questionSeparatorDialog.ClearDialog(false);
 			return true;
 		}
-		private async Task<string> PurgingReply(string reply)
-		{
-			var cleanisingAnswer = await cleansingDialog.SendMessage(reply);
 
-			if (string.IsNullOrEmpty(cleanisingAnswer))
-			{
-				throw new Exception("Не могу почистить");
-			}
-			cleansingDialog.ClearDialog(false);
-			return cleanisingAnswer;
-		}
 		private async Task<HelperResponse> GetReply(string userPrompt)
 		{
-			var sourceTypeIndexes = await GetSourcesTypeByUserPrompt(userPrompt);
-			if (sourceTypeIndexes.Count == 0 || sourceTypeIndexes.Contains(-1))//TODO сделать более грамотное отсеивание некорректный запросов
+			var sourceIndexes = await GetRelevantSources(userPrompt);
+
+			if (sourceIndexes.Contains(-1))
 			{
-				return new HelperResponse
-				{
-					NeedСlarification = false,
-					Response = "Некорректный запрос"
-				};
+				return new HelperResponse { NeedСlarification = false, Response = "Некорректный запрос" };
 			}
 
-			var isEqual = lastSourceTypeIndexes?.SequenceEqual<int>(sourceTypeIndexes) ?? false;
-
-			if (!isEqual)
+			if (!lastSourceTypeIndexes?.SequenceEqual(sourceIndexes) ?? true)
 			{
-				if (sourceTypeIndexes.Contains(AvailableTypes.Count))
-				{
-					userDialog.ReplaceSystemPrompt(message: PromptManager.GetSystemPrompt(subjectArea, null), clearDialog: false);
-				}
-				else
-				{
-					var sources = new List<string>();
-					foreach (var index in sourceTypeIndexes)
-					{
-						var sourceType = AvailableTypes[index];
-						var path = availableTypesAndFileNames[sourceType];
-
-						var source = GetSourceByPath(path);
-						if (string.IsNullOrEmpty(source))
-						{
-							throw new Exception("Source was null");
-						}
-						sources.Add(source);
-					}
-					userDialog.ReplaceSystemPrompt(message: PromptManager.GetSystemPrompt(subjectArea, sources), clearDialog: false);
-				}
-				lastSourceTypeIndexes = sourceTypeIndexes;
+				UpdateSystemPrompt(sourceIndexes);
+				lastSourceTypeIndexes = sourceIndexes;
 			}
 
-			var resultString = await userDialog.SendMessage(userPrompt);
-			var result = JsonSerializer.Deserialize<HelperResponse>(resultString);
-
-			if (result is not null)
-			{
-				return result;
-			}
-			throw new Exception("Can't parse answer");
+			return await FetchReplyFromBot(userPrompt);
 		}
-		private async Task<List<int>> GetSourcesTypeByUserPrompt(string userPrompt)
+
+		private async Task<string> PurgingReply(string reply)
+		{
+			var cleansingAnswer = await cleansingDialog.SendMessage(reply);
+
+			if (string.IsNullOrEmpty(cleansingAnswer))
+			{
+				logger.Log("Не могу почистить", LogLevel.Error);
+				return reply;
+			}
+
+			cleansingDialog.ClearDialog(false);
+			return cleansingAnswer;
+		}
+
+		private async Task<List<int>> GetRelevantSources(string userPrompt)
 		{
 			if (AvailableTypes.Count == 0)
 			{
-				throw new Exception("Types dont exist");
+				logger.Log("No available types", LogLevel.Error);
+				return new List<int> { -1 };
 			}
+
 			var typesString = await classificationDialog.SendMessage(userPrompt);
 			ClassificationLogging(typesString);
-			var types = typesString.Split(new char[] { ';' });
 
-			var listOfTypes = new List<int>();
-
-			for (int i = 0; i < types.Length; i++)
-			{
-				var parseResult = int.TryParse(types[i], out var resultSource);
-				if (parseResult)
-				{
-					listOfTypes.Add(resultSource);
-				}
-			}
-			return listOfTypes;
+			return typesString.Split(';')
+							  .Select(t => int.TryParse(t, out var result) ? result : -1)
+							  .ToList();
 		}
+
+		private void UpdateSystemPrompt(List<int> sourceIndexes)
+		{
+			if (sourceIndexes.Contains(AvailableTypes.Count))
+			{
+				userDialog.ReplaceSystemPrompt(PromptManager.GetSystemPrompt(subjectArea, null), false);
+				return;
+			}
+
+			var sources = sourceIndexes.Select(i => AvailableTypes[i])
+									   .Select(type => availableTypesAndFileNames[type])
+									   .Select(GetSourceByPath)
+									   .Where(source => !string.IsNullOrEmpty(source))
+									   .ToList();
+
+			if (sources.Count == 0)
+			{
+				logger.Log("No valid sources found", LogLevel.Error);
+				return;
+			}
+
+			userDialog.ReplaceSystemPrompt(PromptManager.GetSystemPrompt(subjectArea, sources), false);
+		}
+
 		private string GetSourceByPath(string path)
 		{
 			var result = string.Empty;
@@ -292,9 +276,23 @@ namespace GPTProject.Core
 			return result;
 		}
 
-		private Dictionary<string,string> GetAvailableTypesAndFileNames(List<string> filePaths)
+		private async Task<HelperResponse> FetchReplyFromBot(string userPrompt)
 		{
-			var availableTypesAndFileNames = new Dictionary<string,string>();
+			var resultString = await userDialog.SendMessage(userPrompt);
+			var result = JsonSerializer.Deserialize<HelperResponse>(resultString);
+
+			if (result is null)
+			{
+				logger.Log("Failed to parse bot response", LogLevel.Error);
+				return new HelperResponse { NeedСlarification = false, Response = "Ошибка обработки ответа" };
+			}
+
+			return result;
+		}
+
+		private Dictionary<string, string> GetAvailableTypesAndFileNames(List<string> filePaths)
+		{
+			var availableTypesAndFileNames = new Dictionary<string, string>();
 			foreach (var filePath in filePaths)
 			{
 				if (File.Exists(filePath))
@@ -314,6 +312,7 @@ namespace GPTProject.Core
 			}
 			return availableTypesAndFileNames;
 		}
+
 		private IChatDialog GetChatDialogProvider(Type type)
 		{
 			switch (type)
@@ -340,17 +339,6 @@ namespace GPTProject.Core
 		}
 	}
 
-	public class HelperResponse
-	{
-		[JsonPropertyName("clarificationQuestion")]
-		public string? ClarificationQuestion { get; set; }
-		[JsonPropertyName("response")]
-		public string? Response { get; set; }
-		[JsonPropertyName("needСlarification")]
-		public bool NeedСlarification { get; set; }
-	}
-
-
 	public enum DialogState
 	{
 		Waiting,
@@ -360,4 +348,17 @@ namespace GPTProject.Core
 		Purging,
 		Error
 	}
+
+/*
+	graph TD;
+	A[Waiting] -->|Получили сообщение| B[Separating];
+	B -->|Разбили на вопросы| C[Replying];
+	C -->|Определили тему вопроса| D[UpdateSystemPrompt];
+	D -->|Получили ответ| E[Clarifying];
+	D -->|Ответ готов| F[Purging];
+	E -->|Запросили уточнение| C;
+	F -->|Очистили ответ| A;
+	C -->|Ошибка| G[Error];
+	G -->|Логируем| A;
+*/
 }
