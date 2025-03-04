@@ -121,20 +121,20 @@ namespace GPTProject.Core
 				return false;
 			}
 
-			var (smallTalkReply, filteredQuestions) = await ProcessSmallTalk(currentUserMessage);
+			var smallTalkResponse = await ProcessSmallTalk(currentUserMessage);
 
-			if (smallTalkReply != "EMPTY")
+			if (smallTalkResponse.SmallTalk != "EMPTY")
 			{
-				outputMessage = smallTalkReply;
+				outputMessage = smallTalkResponse.SmallTalk;
 			}
 
-			if (filteredQuestions == "EMPTY")
+			if (smallTalkResponse.Questions == "EMPTY")
 			{
 				currentState = DialogState.Waiting;
 				return true;
 			}
 
-			currentUserMessage = filteredQuestions;
+			currentUserMessage = smallTalkResponse.Questions;
 			currentState = DialogState.Separating;
 			return true;
 		}
@@ -326,16 +326,20 @@ namespace GPTProject.Core
 			return result;
 		}
 
-		private async Task<(string smallTalkReply, string filteredQuestions)> ProcessSmallTalk(string userMessage)
+		private async Task<SmallTalkResponse> ProcessSmallTalk(string userMessage)
 		{
 			var gptResponse = await smallTalkDialog.SendMessage(userMessage);
-			var smallTalkMatch = Regex.Match(gptResponse, @"SMALL_TALK:\s*(.*)");
-			var questionsMatch = Regex.Match(gptResponse, @"QUESTIONS:\s*(.*)");
 
-			string smallTalkReply = smallTalkMatch.Success ? smallTalkMatch.Groups[1].Value.Trim() : "EMPTY";
-			string filteredQuestions = questionsMatch.Success ? questionsMatch.Groups[1].Value.Trim() : "EMPTY";
-
-			return (smallTalkReply, filteredQuestions);
+			try
+			{
+				var responseObject = JsonSerializer.Deserialize<SmallTalkResponse>(gptResponse);
+				return responseObject ?? new SmallTalkResponse { SmallTalk = "EMPTY", Questions = "EMPTY" };
+			}
+			catch (Exception ex)
+			{
+				logger.Log($"Ошибка при обработке Small Talk JSON: {ex.Message}", LogLevel.Error);
+				return new SmallTalkResponse { SmallTalk = "EMPTY", Questions = "EMPTY" };
+			}
 		}
 
 		private Dictionary<string, string> GetAvailableTypesAndFileNames(List<string> filePaths)
