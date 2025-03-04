@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Json;
 using GPTProject.Common;
+using static GPTProject.Core.Providers.Settings.ChatGPT;
 
 namespace GPTProject.Core.Providers.ChatGPT
 {
@@ -16,7 +17,7 @@ namespace GPTProject.Core.Providers.ChatGPT
 		{
 			messagesHistory = new List<Message>();
 			httpClient = new HttpClient();
-			httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {Settings.apiKey}");
+			httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {ApiKey}");
 		}
 
 		public void ClearDialog(bool clearSystemPrompt = true)
@@ -78,11 +79,11 @@ namespace GPTProject.Core.Providers.ChatGPT
 
 			var requestData = new Request()
 			{
-				Model = "gpt-3.5-turbo-0125",
+				Model = Model,
 				Messages = messagesHistory
 			};
 
-			using var response = await httpClient.PostAsJsonAsync(Settings.completionsEndpoint, requestData);
+			using var response = await httpClient.PostAsJsonAsync(CompletionsEndpoint, requestData);
 
 			if (!response.IsSuccessStatusCode)
 			{

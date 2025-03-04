@@ -1,6 +1,6 @@
 ﻿using System.Net.Http.Json;
 using GPTProject.Common;
-
+using static GPTProject.Core.Providers.Settings.YandexGPT;
 
 namespace GPTProject.Core.Providers.YandexGPT
 {
@@ -14,7 +14,7 @@ namespace GPTProject.Core.Providers.YandexGPT
 		{
 			messagesHistory = new List<YandexMessage>();
 			httpClient = new HttpClient();
-			httpClient.DefaultRequestHeaders.Add("Authorization", $"Api-Key {Settings.apiKey}");
+			httpClient.DefaultRequestHeaders.Add("Authorization", $"Api-Key {ApiKey}");
 		}
 
 		public async Task<string> SendMessage(string message)
@@ -32,11 +32,11 @@ namespace GPTProject.Core.Providers.YandexGPT
 
 			var prompt = new YandexRequest()
 			{
-				ModelUri = $"gpt://{Settings.CatalogId}/yandexgpt-lite",
+				ModelUri = $"gpt://{CatalogId}/{Model}",
 				Messages = messagesHistory
 			};
 
-			using var response = await httpClient.PostAsJsonAsync(Settings.completionsEndpoint, prompt);
+			using var response = await httpClient.PostAsJsonAsync(CompletionsEndpoint, prompt);
 
 			if (!response.IsSuccessStatusCode)
 			{

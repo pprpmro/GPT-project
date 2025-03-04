@@ -1,6 +1,7 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
 using GPTProject.Common;
+using static GPTProject.Core.Providers.Settings.GigaChat;
 
 namespace GPTProject.Core.Providers.GigaChat
 {
@@ -23,11 +24,11 @@ namespace GPTProject.Core.Providers.GigaChat
 		private async Task<AccessData> GetAccessData()
 		{
 			httpClient.DefaultRequestHeaders.Clear();
-			httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {Settings.authorizeData}");
+			httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {AuthorizeData}");
 			httpClient.DefaultRequestHeaders.Add("RqUID", RqUID.ToString());
 
-			var scopeList = new List<KeyValuePair<string, string>>() { new KeyValuePair<string, string>("scope", Settings.scope) };
-			using var response = await httpClient.PostAsync(Settings.accessTokenEndpoint, new FormUrlEncodedContent(scopeList));
+			var scopeList = new List<KeyValuePair<string, string>>() { new KeyValuePair<string, string>("scope", Scope) };
+			using var response = await httpClient.PostAsync(AccessTokenEndpoint, new FormUrlEncodedContent(scopeList));
 
 			var accessData = GetAccessData(response);
 
@@ -80,11 +81,11 @@ namespace GPTProject.Core.Providers.GigaChat
 
 			var Request = new Request()
 			{
-				Model = "GigaChat:latest",
+				Model = Model,
 				Messages = messagesHistory
 			};
 
-			using var response = await httpClient.PostAsJsonAsync(Settings.completionsEndpoint, Request);
+			using var response = await httpClient.PostAsJsonAsync(CompletionsEndpoint, Request);
 
 			if (!response.IsSuccessStatusCode)
 			{
