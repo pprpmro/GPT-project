@@ -25,6 +25,8 @@ namespace GPTProject.Core
 		private string? currentUserMessage;
 		private string outputMessage = "";
 
+		private int clarificationAttempts = 0;
+		private const int MaxClarificationAttempts = 3;
 
 		private List<string> AvailableTypes
 		{
@@ -84,6 +86,7 @@ namespace GPTProject.Core
 				return currentState switch
 				{
 					DialogState.Waiting => ProcessWaitingState(),
+					DialogState.SmallTalk => await ProcessSmallTalkState(),
 					DialogState.Separating => await ProcessSeparatingState(),
 					DialogState.Replying => await ProcessReplyingState(),
 					DialogState.Clarifying => await ProcessClarifyingState(),
@@ -186,6 +189,13 @@ namespace GPTProject.Core
 				return false;
 			}
 
+			if (clarificationAttempts >= MaxClarificationAttempts)
+			{
+				outputMessage = "Я не могу продолжать без более точной информации. Давайте попробуем другой вопрос.";
+				currentState = DialogState.Waiting;
+				return true;
+			}
+
 			var resultString = await userDialog.SendMessage(currentUserMessage);
 			var result = JsonSerializer.Deserialize<HelperResponse>(resultString);
 
@@ -195,8 +205,15 @@ namespace GPTProject.Core
 				return false;
 			}
 
-			outputMessage = result.NeedСlarification ? result.ClarificationQuestion : result.Response + Environment.NewLine;
-			currentState = result.NeedСlarification ? DialogState.Clarifying : DialogState.Replying;
+			if (result.NeedСlarification)
+			{
+				clarificationAttempts++;
+				outputMessage = result.ClarificationQuestion + Environment.NewLine;
+				return true;
+			}
+
+			outputMessage = result.Response + Environment.NewLine;
+			currentState = DialogState.Replying;
 			return true;
 		}
 		private async Task<bool> ProcessPurgingState()
@@ -279,10 +296,10 @@ namespace GPTProject.Core
 			}
 
 			var sources = sourceIndexes.Select(i => AvailableTypes[i])
-									   .Select(type => availableTypesAndFileNames[type])
-									   .Select(GetSourceByPath)
-									   .Where(source => !string.IsNullOrEmpty(source))
-									   .ToList();
+										.Select(type => availableTypesAndFileNames[type])
+										.Select(GetSourceByPath)
+										.Where(source => !string.IsNullOrEmpty(source))
+										.ToList();
 
 			if (sources.Count == 0)
 			{
