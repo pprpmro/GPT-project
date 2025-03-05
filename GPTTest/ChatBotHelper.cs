@@ -344,8 +344,8 @@ namespace GPTProject.Core
 			foreach (var segmentPath in knowledgeBaseFiles.SegmentPaths)
 			{
 				string fileName = Path.GetFileNameWithoutExtension(segmentPath);
-				string metadataPath = knowledgeBaseFiles.MetadataPaths
-					.FirstOrDefault(meta => Path.GetFileNameWithoutExtension(meta) == fileName);
+				string? metadataPath = knowledgeBaseFiles.MetadataPaths
+					.FirstOrDefault(meta => Path.GetFileNameWithoutExtension(meta) == $"{fileName}.meta");
 
 				if (metadataPath == null)
 				{
