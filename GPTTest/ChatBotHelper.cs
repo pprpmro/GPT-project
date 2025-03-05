@@ -27,18 +27,6 @@ namespace GPTProject.Core
 		private int clarificationAttempts = 0;
 		private const int MaxClarificationAttempts = 3;
 
-		private List<string> AvailableTypes
-		{
-			get
-			{
-				if (availableTypesAndFileNames is null || availableTypesAndFileNames.Count == 0)
-				{
-					return new List<string>();
-				}
-				return availableTypesAndFileNames.Keys.ToList();
-			}
-		}
-
 		public DialogState DialogState { get { return currentState; } }
 
 		public ChatBotHelper(
