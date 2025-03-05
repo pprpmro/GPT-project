@@ -11,10 +11,14 @@ namespace GPTProject.ConsoleUI
 			var subjectArea = "Знаток о динозаврах, можешь рассказать о некоторых видах.";
 			var startPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\..\"));
 			string sourcesFolderPath = Path.Combine(startPath, @"GPTProject.ConsoleUI\Sources");
-			List<string> txtFiles = FileHelper.GetTxtFiles(sourcesFolderPath);
+			string segmentsFolderPath = Path.Combine(sourcesFolderPath, "Segments");
+			string metadataFolderPath = Path.Combine(sourcesFolderPath, "Metadata");
+			List<string> segmentFiles = FileHelper.GetTxtFiles(segmentsFolderPath);
+			List<string> metadataFiles = FileHelper.GetTxtFiles(metadataFolderPath);
+			var knowledgeBaseFiles = new KnowledgeBaseFiles() { SegmentPaths = segmentFiles, MetadataPaths = metadataFiles };
 
 			ILogger logger = new ConsoleLogger();
-			var helper = new ChatBotHelper(Type.ChatGPT, subjectArea, txtFiles, logger);
+			var helper = new ChatBotHelper(Type.ChatGPT, subjectArea, knowledgeBaseFiles, logger);
 
 			logger.Log("ChatBotHelper готов к работе", LogLevel.Info);
 

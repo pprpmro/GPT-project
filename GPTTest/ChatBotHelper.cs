@@ -1,5 +1,4 @@
 ﻿using System.Text.Json;
-using System.Text.RegularExpressions;
 using GPTProject.Core.Logger;
 using GPTProject.Core.Providers.ChatGPT;
 using GPTProject.Core.Providers.GigaChat;
@@ -15,7 +14,7 @@ namespace GPTProject.Core
 		private readonly IChatDialog cleansingDialog;
 		private readonly IChatDialog questionSeparatorDialog;
 		private readonly IChatDialog smallTalkDialog;
-		private readonly Dictionary<string, string> availableTypesAndFileNames;
+		private readonly Dictionary<string, (string SegmentPath, string MetadataPath)> availableTypesAndFileNames;
 		private readonly string subjectArea;
 
 		private Queue<string> pendingQuestions = new();
@@ -36,7 +35,7 @@ namespace GPTProject.Core
 				{
 					return new List<string>();
 				}
-				return availableTypesAndFileNames.Select(x => x.Key).ToList();
+				return availableTypesAndFileNames.Keys.ToList();
 			}
 		}
 
@@ -45,7 +44,7 @@ namespace GPTProject.Core
 		public ChatBotHelper(
 			Type providerType,
 			string subjectArea,
-			List<string> filePaths,
+			KnowledgeBaseFiles knowledgeBaseFiles,
 			ILogger logger)
 		{
 			this.logger = logger;
@@ -61,8 +60,16 @@ namespace GPTProject.Core
 			this.cleansingDialog.SetSystemPrompt(message: PromptManager.GetCleansingPrompt());
 			this.questionSeparatorDialog.SetSystemPrompt(message: PromptManager.GetQuestionSeparatingPrompt());
 
-			this.availableTypesAndFileNames = GetAvailableTypesAndFileNames(filePaths);
-			this.classificationDialog.SetSystemPrompt(message: PromptManager.GetClassificationPrompt(AvailableTypes));
+			this.availableTypesAndFileNames = GetAvailableTypesAndFileNames(knowledgeBaseFiles);
+
+			this.classificationDialog.SetSystemPrompt(
+				message: PromptManager.GetClassificationPrompt(
+					availableTypesAndFileNames.ToDictionary(
+						kvp => kvp.Key,
+						kvp => File.ReadAllText(kvp.Value.MetadataPath)
+					)
+				)
+			);
 
 			this.smallTalkDialog.SetSystemPrompt(message: PromptManager.GetSmallTalkPrompt());
 
@@ -273,41 +280,41 @@ namespace GPTProject.Core
 
 		private async Task<List<int>> GetRelevantSources(string userPrompt)
 		{
-			if (AvailableTypes.Count == 0)
+			if (availableTypesAndFileNames.Count == 0)
 			{
-				logger.Log("No available types", LogLevel.Error);
+				logger.Log("Нет доступных типов", LogLevel.Error);
 				return new List<int> { -1 };
 			}
 
 			var typesString = await classificationDialog.SendMessage(userPrompt);
 			ClassificationLogging(typesString);
 
-			return typesString.Split(';')
-							  .Select(t => int.TryParse(t, out var result) ? result : -1)
-							  .ToList();
+			var selectedIndexes = typesString.Split(';')
+											 .Select(t => int.TryParse(t, out var result) ? result : -1)
+											 .Where(i => i >= 1 && i <= availableTypesAndFileNames.Count)
+											 .Select(i => i - 1)
+											 .ToList();
+
+			return selectedIndexes.Count > 0 ? selectedIndexes : new List<int> { -1 };
 		}
 
 		private void UpdateSystemPrompt(List<int> sourceIndexes)
 		{
-			if (sourceIndexes.Contains(AvailableTypes.Count))
+			var selectedSegments = sourceIndexes
+				.Select(i => availableTypesAndFileNames.ElementAtOrDefault(i))
+				.Where(kvp => kvp.Key != null)
+				.Select(kvp => kvp.Value.SegmentPath)
+				.Select(GetSourceByPath)
+				.Where(source => !string.IsNullOrEmpty(source))
+				.ToList();
+
+			if (selectedSegments.Count == 0)
 			{
-				userDialog.ReplaceSystemPrompt(PromptManager.GetSystemPrompt(subjectArea, null), false);
+				logger.Log("Нет подходящих сегментов", LogLevel.Error);
 				return;
 			}
 
-			var sources = sourceIndexes.Select(i => AvailableTypes[i])
-										.Select(type => availableTypesAndFileNames[type])
-										.Select(GetSourceByPath)
-										.Where(source => !string.IsNullOrEmpty(source))
-										.ToList();
-
-			if (sources.Count == 0)
-			{
-				logger.Log("No valid sources found", LogLevel.Error);
-				return;
-			}
-
-			userDialog.ReplaceSystemPrompt(PromptManager.GetSystemPrompt(subjectArea, sources), false);
+			userDialog.ReplaceSystemPrompt(PromptManager.GetSystemPrompt(subjectArea, selectedSegments), false);
 		}
 
 		private string GetSourceByPath(string path) => File.ReadAllText(path);
@@ -332,8 +339,8 @@ namespace GPTProject.Core
 
 			try
 			{
-				var responseObject = JsonSerializer.Deserialize<SmallTalkResponse>(gptResponse);
-				return responseObject ?? new SmallTalkResponse { SmallTalk = "EMPTY", Questions = "EMPTY" };
+				return JsonSerializer.Deserialize<SmallTalkResponse>(gptResponse) ??
+						new SmallTalkResponse { SmallTalk = "EMPTY", Questions = "EMPTY" };
 			}
 			catch (Exception ex)
 			{
@@ -342,27 +349,33 @@ namespace GPTProject.Core
 			}
 		}
 
-		private Dictionary<string, string> GetAvailableTypesAndFileNames(List<string> filePaths)
+		private Dictionary<string, (string SegmentPath, string MetadataPath)> GetAvailableTypesAndFileNames(KnowledgeBaseFiles knowledgeBaseFiles)
 		{
-			var availableTypesAndFileNames = new Dictionary<string, string>();
-			foreach (var filePath in filePaths)
+			var availableFiles = new Dictionary<string, (string, string)>();
+
+			foreach (var segmentPath in knowledgeBaseFiles.SegmentPaths)
 			{
-				if (File.Exists(filePath))
+				string fileName = Path.GetFileNameWithoutExtension(segmentPath);
+				string metadataPath = knowledgeBaseFiles.MetadataPaths
+					.FirstOrDefault(meta => Path.GetFileNameWithoutExtension(meta) == fileName);
+
+				if (metadataPath == null)
 				{
-					availableTypesAndFileNames[Path.GetFileName(filePath)] = filePath;
+					logger.Log($"Метаданные для {fileName} не найдены!", LogLevel.Warning);
+					continue;
 				}
-				else
-				{
-					logger.Log($"Can't find file: {filePath}", LogLevel.Warning);
-				}
+
+				availableFiles[fileName] = (segmentPath, metadataPath);
 			}
 
-			if (availableTypesAndFileNames.Count == 0)
+			if (availableFiles.Count == 0)
 			{
-				throw new Exception("Files don't exist");
+				throw new Exception("Файлы не найдены!");
 			}
-			return availableTypesAndFileNames;
+
+			return availableFiles;
 		}
+
 
 		private IChatDialog GetChatDialogProvider(Type type) => type switch
 		{
@@ -394,16 +407,20 @@ namespace GPTProject.Core
 		Error
 	}
 
-/*
+	/*
 	graph TD;
-	A[Waiting] -->|Получили сообщение| B[Separating];
-	B -->|Разбили на вопросы| C[Replying];
-	C -->|Определили тему вопроса| D[UpdateSystemPrompt];
-	D -->|Получили ответ| E[Clarifying];
-	D -->|Ответ готов| F[Purging];
-	E -->|Запросили уточнение| C;
-	F -->|Очистили ответ| A;
-	C -->|Ошибка| G[Error];
-	G -->|Логируем| A;
-*/
+		A[Waiting] -->|Проверка Small Talk| B[SmallTalk]
+		B -->|Small Talk найден| C[Ответ пользователю и возврат в Waiting]
+		B -->|Small Talk отсутствует| D[Separating]
+		D -->|Разделение на вопросы| E[Classification]
+		E -->|Категория найдена| F[Replying]
+		E -->|Категория не найдена (-1)| G[Ответ "Не по теме" и возврат в Waiting]
+		F -->|Ответ найден| H[Purging]
+		F -->|Недостаточно информации| I[Clarifying]
+		I -->|Уточнение получено| F
+		I -->|3 неудачных попытки| J[Ответ "Я не могу продолжать" и возврат в Waiting]
+		H -->|Ответ обработан| A
+		F -->|Ошибка| K[Error]
+		K -->|Лог ошибки и возврат в Waiting| A
+	*/
 }
