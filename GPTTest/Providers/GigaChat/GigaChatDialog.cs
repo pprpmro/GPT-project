@@ -13,12 +13,15 @@ namespace GPTProject.Core.Providers.GigaChat
 		private const int minimalContentLength = 1;
 		private Guid RqUID;
 
+		public int MaxDialogHistorySize { get; set; }
 
-		public GigaChatDialog()
+		public GigaChatDialog(int maxDialogHistorySize = 50)
 		{
 			messagesHistory = new List<Message>();
 			httpClient = new HttpClient();
 			RqUID = Guid.NewGuid();
+
+			MaxDialogHistorySize = maxDialogHistorySize;
 		}
 
 		private async Task<AccessData> GetAccessData()
@@ -60,7 +63,7 @@ namespace GPTProject.Core.Providers.GigaChat
 			}
 		}
 
-		public async Task<string> SendMessage(string content)
+		public async Task<string> SendMessage(string content, bool rememberMessage = true)
 		{
 			if (content.Length < minimalContentLength)
 			{
@@ -101,11 +104,24 @@ namespace GPTProject.Core.Providers.GigaChat
 
 			var choice = choices[0].Message.Content.Trim();
 
-			messagesHistory.Add(new Message()
+			if (rememberMessage)
 			{
-				Role = Role.Assistant,
-				Content = choice
-			});
+				messagesHistory.Add(new Message()
+				{
+					Role = Role.Assistant,
+					Content = choice
+				});
+			}
+			else
+			{
+				messagesHistory.RemoveAt(messagesHistory.Count - 1);
+			}
+
+			if (messagesHistory.Count > MaxDialogHistorySize)
+			{
+				int removeCount = messagesHistory.Count - MaxDialogHistorySize;
+				messagesHistory.RemoveRange(1, removeCount);
+			}
 
 			return choice;
 		}
@@ -121,35 +137,48 @@ namespace GPTProject.Core.Providers.GigaChat
 			}
 		}
 
-		public void SetSystemPrompt(string message)
+		public void ClearDialog(bool clearSystemPrompt = false, int? lastNMessages = null)
 		{
-
-			 ClearDialog();
-			if (string.IsNullOrEmpty(message))
+			if (clearSystemPrompt)
 			{
-				throw new ArgumentException("message is null");
-			}
-
-			messagesHistory.Add(new Message() { Role = Role.System, Content = message });
-		}
-
-		public void ReplaceSystemPrompt(string message, bool clearDialog = true)
-		{
-			if (clearDialog || messagesHistory.Count == 0)
-			{
-				ClearDialog();
-				SetSystemPrompt(message);
+				messagesHistory.Clear();
 				return;
 			}
 
-			if (messagesHistory[0].Role == Role.System)
+			if (messagesHistory.Count == 0) return;
+
+			bool hasSystemPrompt = messagesHistory[0].Role == Role.Developer;
+
+			if (lastNMessages.HasValue)
+			{
+				int removeCount = Math.Min(lastNMessages.Value, messagesHistory.Count - (hasSystemPrompt ? 1 : 0));
+
+				if (removeCount > 0)
+				{
+					messagesHistory.RemoveRange(messagesHistory.Count - removeCount, removeCount);
+				}
+			}
+			else
+			{
+				messagesHistory.RemoveRange(hasSystemPrompt ? 1 : 0, messagesHistory.Count - (hasSystemPrompt ? 1 : 0));
+			}
+		}
+
+		public void UpdateSystemPrompt(string message, bool clearDialog = false)
+		{
+			if (string.IsNullOrEmpty(message))
+				throw new ArgumentException("System prompt cannot be null or empty.");
+
+			if (clearDialog)
+				messagesHistory.Clear();
+
+			if (messagesHistory.Count > 0 && messagesHistory[0].Role == Role.Developer)
 			{
 				messagesHistory[0].Content = message;
 			}
 			else
 			{
-				ClearDialog();
-				SetSystemPrompt(message);
+				messagesHistory.Insert(0, new Message { Role = Role.Developer, Content = message });
 			}
 		}
 	}

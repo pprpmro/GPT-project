@@ -12,12 +12,16 @@ namespace GPTProject.Core.Providers.ChatGPT
 		private const int minimalContentLength = 1;
 
 		public int MessageCount { get { return messagesHistory.Count; } }
+		public int MaxDialogHistorySize { get; set; }
 
-		public ChatGPTDialog()
+		public ChatGPTDialog(int maxDialogHistorySize = 50)
 		{
 			messagesHistory = new List<Message>();
 			httpClient = new HttpClient();
 			httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {ApiKey}");
+
+			MaxDialogHistorySize = maxDialogHistorySize;
+
 		}
 
 		public void ClearDialog(bool clearSystemPrompt = true)
@@ -32,39 +36,53 @@ namespace GPTProject.Core.Providers.ChatGPT
 			}
 		}
 
-		public void SetSystemPrompt(string message)
+		public void ClearDialog(bool clearSystemPrompt = false, int ? lastNMessages = null)
 		{
-
-			ClearDialog();
-			if (string.IsNullOrEmpty(message))
+			if (clearSystemPrompt)
 			{
-				throw new ArgumentException("message is null");
-			}
-
-			messagesHistory.Add(new Message() { Role = Role.Developer, Content = message});
-		}
-
-		public void ReplaceSystemPrompt(string message, bool clearDialog = true)
-		{
-			if (clearDialog || messagesHistory.Count == 0)
-			{
-				ClearDialog();
-				SetSystemPrompt(message);
+				messagesHistory.Clear();
 				return;
 			}
 
-			if (messagesHistory[0].Role == Role.Developer)
+			if (messagesHistory.Count == 0) return;
+
+			bool hasSystemPrompt = messagesHistory[0].Role == Role.Developer;
+
+			if (lastNMessages.HasValue)
+			{
+				int removeCount = Math.Min(lastNMessages.Value, messagesHistory.Count - (hasSystemPrompt ? 1 : 0));
+
+				if (removeCount > 0)
+				{
+					messagesHistory.RemoveRange(messagesHistory.Count - removeCount, removeCount);
+				}
+			}
+			else
+			{
+				messagesHistory.RemoveRange(hasSystemPrompt ? 1 : 0, messagesHistory.Count - (hasSystemPrompt ? 1 : 0));
+			}
+		}
+
+
+		public void UpdateSystemPrompt(string message, bool clearDialog = false)
+		{
+			if (string.IsNullOrEmpty(message))
+				throw new ArgumentException("System prompt cannot be null or empty.");
+
+			if (clearDialog)
+				messagesHistory.Clear();
+
+			if (messagesHistory.Count > 0 && messagesHistory[0].Role == Role.Developer)
 			{
 				messagesHistory[0].Content = message;
 			}
 			else
 			{
-				ClearDialog();
-				SetSystemPrompt(message);
+				messagesHistory.Insert(0, new Message { Role = Role.Developer, Content = message });
 			}
 		}
 
-		public async Task<string> SendMessage(string message)
+		public async Task<string> SendMessage(string message, bool rememberMessage = true)
 		{
 			if (message.Length < minimalContentLength)
 			{
@@ -99,11 +117,24 @@ namespace GPTProject.Core.Providers.ChatGPT
 
 			var choice = choices[0].Message.Content.Trim();
 
-			messagesHistory.Add(new Message()
+			if (rememberMessage)
 			{
-				Role = Role.Assistant,
-				Content = choice
-			});
+				messagesHistory.Add(new Message()
+				{
+					Role = Role.Assistant,
+					Content = choice
+				});
+			}
+			else
+			{
+				messagesHistory.RemoveAt(messagesHistory.Count - 1);
+			}
+
+			if (messagesHistory.Count > MaxDialogHistorySize)
+			{
+				int removeCount = messagesHistory.Count - MaxDialogHistorySize;
+				messagesHistory.RemoveRange(1, removeCount);
+			}
 
 			return choice;
 		}

@@ -45,12 +45,12 @@ namespace GPTProject.Core
 
 			this.smallTalkDialog = GetChatDialogProvider(providerType);
 
-			this.cleansingDialog.SetSystemPrompt(message: PromptManager.GetCleansingPrompt());
-			this.questionSeparatorDialog.SetSystemPrompt(message: PromptManager.GetQuestionSeparatingPrompt());
+			this.cleansingDialog.UpdateSystemPrompt(message: PromptManager.GetCleansingPrompt());
+			this.questionSeparatorDialog.UpdateSystemPrompt(message: PromptManager.GetQuestionSeparatingPrompt());
 
 			this.availableTypesAndFileNames = GetAvailableTypesAndFileNames(knowledgeBaseFiles);
 
-			this.classificationDialog.SetSystemPrompt(
+			this.classificationDialog.UpdateSystemPrompt(
 				message: PromptManager.GetClassificationPrompt(
 					availableTypesAndFileNames.ToDictionary(
 						kvp => kvp.Key,
@@ -59,7 +59,7 @@ namespace GPTProject.Core
 				)
 			);
 
-			this.smallTalkDialog.SetSystemPrompt(message: PromptManager.GetSmallTalkPrompt());
+			this.smallTalkDialog.UpdateSystemPrompt(message: PromptManager.GetSmallTalkPrompt());
 
 			this.currentState = DialogState.Waiting;
 		}
@@ -100,12 +100,14 @@ namespace GPTProject.Core
 		private bool ProcessWaitingState()
 		{
 			outputMessage = "";
-			currentState = DialogState.Separating;
+			currentState = DialogState.SmallTalk;
 			return true;
 		}
 		private bool ProcessErrorState()
 		{
+			outputMessage = "Can't get answer";
 			logger.Log("Entered Error state", LogLevel.Error);
+			currentState = DialogState.Waiting;
 			return false;
 		}
 		private async Task<bool> ProcessSmallTalkState()
@@ -221,7 +223,7 @@ namespace GPTProject.Core
 
 		private async Task<bool> SeparateQuestion(string userQuestion)
 		{
-			var separatedQuestionsString = await questionSeparatorDialog.SendMessage(userQuestion);
+			var separatedQuestionsString = await questionSeparatorDialog.SendMessage(userQuestion, rememberMessage: false);
 
 			if (string.IsNullOrEmpty(separatedQuestionsString))
 			{
@@ -254,7 +256,7 @@ namespace GPTProject.Core
 
 		private async Task<string> PurgingReply(string reply)
 		{
-			var cleansingAnswer = await cleansingDialog.SendMessage(reply);
+			var cleansingAnswer = await cleansingDialog.SendMessage(reply, rememberMessage: false);
 
 			if (string.IsNullOrEmpty(cleansingAnswer))
 			{
@@ -302,7 +304,7 @@ namespace GPTProject.Core
 				return;
 			}
 
-			userDialog.ReplaceSystemPrompt(PromptManager.GetSystemPrompt(subjectArea, selectedSegments), false);
+			userDialog.UpdateSystemPrompt(PromptManager.GetSystemPrompt(subjectArea, selectedSegments), false);
 		}
 
 		private string GetSourceByPath(string path) => File.ReadAllText(path);

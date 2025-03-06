@@ -2,16 +2,10 @@
 {
 	public interface IChatDialog
 	{
-		///<summary>
-		///Will return first result
-		///</summary>
-		Task<string> SendMessage(string message);
+		Task<string> SendMessage(string message, bool rememberMessage = true);
 		void ClearDialog(bool clearSystemPrompt = true);
-
-		///<summary>
-		///Will clear all dialog
-		///</summary>
-		void SetSystemPrompt(string message);
-		void ReplaceSystemPrompt(string message, bool clearDialog = true);
+		void ClearDialog(bool clearSystemPrompt = false, int? lastNMessages = null);
+		void UpdateSystemPrompt(string message, bool clearDialog = false);
+		int MaxDialogHistorySize { get; set; }
 	}
 }

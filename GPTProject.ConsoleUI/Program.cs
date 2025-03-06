@@ -18,7 +18,7 @@ namespace GPTProject.ConsoleUI
 			var knowledgeBaseFiles = new KnowledgeBaseFiles() { SegmentPaths = segmentFiles, MetadataPaths = metadataFiles };
 
 			ILogger logger = new ConsoleLogger();
-			var helper = new ChatBotHelper(Type.ChatGPT, subjectArea, knowledgeBaseFiles, logger);
+			var helper = new ChatBotHelper(Type.YandexGPT, subjectArea, knowledgeBaseFiles, logger);
 
 			logger.Log("ChatBotHelper готов к работе", LogLevel.Info);
 
@@ -51,7 +51,7 @@ namespace GPTProject.ConsoleUI
 					continue;
 				}
 
-				if (helper.DialogState is DialogState.Waiting or DialogState.Clarifying)
+				if (helper.DialogState is DialogState.Waiting or DialogState.Clarifying or DialogState.Error)
 				{
 					Console.WriteLine(helper.GetOutputMessage());
 				}
