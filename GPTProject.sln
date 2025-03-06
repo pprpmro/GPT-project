@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34728.123
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GPTProject.Core", "GPTTest\GPTProject.Core.csproj", "{38961B34-0507-463B-A6F0-61230A5BE8AA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GPTProject.Core", "GPTProject.Core\GPTProject.Core.csproj", "{38961B34-0507-463B-A6F0-61230A5BE8AA}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GPTProject.ConsoleUI", "GPTProject.ConsoleUI\GPTProject.ConsoleUI.csproj", "{C34FE5B7-572E-4847-AF7C-F3F4913D84A3}"
 EndProject
