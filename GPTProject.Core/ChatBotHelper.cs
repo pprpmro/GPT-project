@@ -7,7 +7,7 @@ using GPTProject.Core.Providers.YandexGPT;
 
 namespace GPTProject.Core
 {
-    public class ChatBotHelper
+	public class ChatBotHelper
 	{
 		private readonly ILogger logger;
 		private readonly Dictionary<DialogType, IChatDialog> dialogs = new();
@@ -27,7 +27,7 @@ namespace GPTProject.Core
 		public DialogState DialogState { get { return currentState; } }
 
 		public ChatBotHelper(
-			Dictionary<DialogType, Type> providerTypes,
+			Dictionary<DialogType, ProviderType> providerTypes,
 			string subjectArea,
 			KnowledgeBaseFiles knowledgeBaseFiles,
 			ILogger logger)
@@ -49,11 +49,11 @@ namespace GPTProject.Core
 			this.currentState = DialogState.Waiting;
 		}
 
-		private IChatDialog GetChatDialogProvider(Type type) => type switch
+		private IChatDialog GetChatDialogProvider(ProviderType type) => type switch
 		{
-			Type.ChatGPT => new ChatGPTDialog(),
-			Type.YandexGPT => new YandexGPTDialog(),
-			Type.GigaChat => new GigaChatDialog(),
+			ProviderType.ChatGPT => new ChatGPTDialog(),
+			ProviderType.YandexGPT => new YandexGPTDialog(),
+			ProviderType.GigaChat => new GigaChatDialog(),
 			_ => throw new NotImplementedException()
 		};
 

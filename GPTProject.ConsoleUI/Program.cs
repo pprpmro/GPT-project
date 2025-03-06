@@ -1,10 +1,10 @@
 ﻿using GPTProject.Core;
 using GPTProject.Core.Logger;
-using Type = GPTProject.Core.Providers.Type;
+using GPTProject.Core.Providers;
 
 namespace GPTProject.ConsoleUI
 {
-    public class Program
+	public class Program
 	{
 		public static async Task Main(string[] args)
 		{
@@ -18,13 +18,13 @@ namespace GPTProject.ConsoleUI
 			var knowledgeBaseFiles = new KnowledgeBaseFiles() { SegmentPaths = segmentFiles, MetadataPaths = metadataFiles };
 
 			ILogger logger = new ConsoleLogger();
-			var providerConfig = new Dictionary<DialogType, Type>
+			var providerConfig = new Dictionary<DialogType, ProviderType>
 			{
-				{ DialogType.User, Type.ChatGPT },
-				{ DialogType.Classification, Type.ChatGPT },
-				{ DialogType.Cleansing, Type.ChatGPT },
-				{ DialogType.QuestionSeparator, Type.ChatGPT },
-				{ DialogType.SmallTalk, Type.ChatGPT }
+				{ DialogType.User, ProviderType.ChatGPT },
+				{ DialogType.Classification, ProviderType.ChatGPT },
+				{ DialogType.Cleansing, ProviderType.ChatGPT },
+				{ DialogType.QuestionSeparator, ProviderType.ChatGPT },
+				{ DialogType.SmallTalk, ProviderType.ChatGPT }
 			};
 
 			var helper = new ChatBotHelper(providerConfig, subjectArea, knowledgeBaseFiles, logger);
