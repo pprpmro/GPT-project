@@ -18,7 +18,16 @@ namespace GPTProject.ConsoleUI
 			var knowledgeBaseFiles = new KnowledgeBaseFiles() { SegmentPaths = segmentFiles, MetadataPaths = metadataFiles };
 
 			ILogger logger = new ConsoleLogger();
-			var helper = new ChatBotHelper(Type.YandexGPT, subjectArea, knowledgeBaseFiles, logger);
+			var providerConfig = new Dictionary<DialogType, Type>
+			{
+				{ DialogType.User, Type.ChatGPT },
+				{ DialogType.Classification, Type.ChatGPT },
+				{ DialogType.Cleansing, Type.ChatGPT },
+				{ DialogType.QuestionSeparator, Type.ChatGPT },
+				{ DialogType.SmallTalk, Type.ChatGPT }
+			};
+
+			var helper = new ChatBotHelper(providerConfig, subjectArea, knowledgeBaseFiles, logger);
 
 			logger.Log("ChatBotHelper готов к работе", LogLevel.Info);
 

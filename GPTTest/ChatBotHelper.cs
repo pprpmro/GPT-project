@@ -9,20 +9,16 @@ namespace GPTProject.Core
 	public class ChatBotHelper
 	{
 		private readonly ILogger logger;
-		private readonly IChatDialog userDialog;
-		private readonly IChatDialog classificationDialog;
-		private readonly IChatDialog cleansingDialog;
-		private readonly IChatDialog questionSeparatorDialog;
-		private readonly IChatDialog smallTalkDialog;
+		private readonly Dictionary<DialogType, IChatDialog> dialogs = new();
 		private readonly Dictionary<string, (string SegmentPath, string MetadataPath)> availableTypesAndFileNames;
 		private readonly string subjectArea;
 
 		private Queue<string> pendingQuestions = new();
-
 		private DialogState currentState;
 		private List<int>? lastSourceTypeIndexes = null;
 		private string? currentUserMessage;
 		private string outputMessage = "";
+
 
 		private int clarificationAttempts = 0;
 		private const int MaxClarificationAttempts = 3;
@@ -30,40 +26,60 @@ namespace GPTProject.Core
 		public DialogState DialogState { get { return currentState; } }
 
 		public ChatBotHelper(
-			Type providerType,
+			Dictionary<DialogType, Type> providerTypes,
 			string subjectArea,
 			KnowledgeBaseFiles knowledgeBaseFiles,
 			ILogger logger)
 		{
 			this.logger = logger;
 			this.subjectArea = subjectArea;
-			this.classificationDialog = GetChatDialogProvider(providerType);
-			this.userDialog = GetChatDialogProvider(providerType);
 
-			this.cleansingDialog = GetChatDialogProvider(providerType);
-			this.questionSeparatorDialog = GetChatDialogProvider(providerType);
+			foreach (DialogType dialogType in Enum.GetValues(typeof(DialogType)))
+			{
+				if (!providerTypes.TryGetValue(dialogType, out var providerType))
+				{
+					throw new ArgumentException($"Поставщик для {dialogType} не задан в providerTypes.");
+				}
+				dialogs[dialogType] = GetChatDialogProvider(providerType);
+			}
+			availableTypesAndFileNames = GetAvailableTypesAndFileNames(knowledgeBaseFiles);
 
-			this.smallTalkDialog = GetChatDialogProvider(providerType);
-
-			this.cleansingDialog.UpdateSystemPrompt(message: PromptManager.GetCleansingPrompt());
-			this.questionSeparatorDialog.UpdateSystemPrompt(message: PromptManager.GetQuestionSeparatingPrompt());
-
-			this.availableTypesAndFileNames = GetAvailableTypesAndFileNames(knowledgeBaseFiles);
-
-			this.classificationDialog.UpdateSystemPrompt(
-				message: PromptManager.GetClassificationPrompt(
-					availableTypesAndFileNames.ToDictionary(
-						kvp => kvp.Key,
-						kvp => File.ReadAllText(kvp.Value.MetadataPath)
-					)
-				)
-			);
-
-			this.smallTalkDialog.UpdateSystemPrompt(message: PromptManager.GetSmallTalkPrompt());
-
+			InitializeSystemPrompts(knowledgeBaseFiles);
 			this.currentState = DialogState.Waiting;
 		}
 
+		private IChatDialog GetChatDialogProvider(Type type) => type switch
+		{
+			Type.ChatGPT => new ChatGPTDialog(),
+			Type.YandexGPT => new YandexGPTDialog(),
+			Type.GigaChat => new GigaChatDialog(),
+			_ => throw new NotImplementedException()
+		};
+
+		private void InitializeSystemPrompts(KnowledgeBaseFiles knowledgeBaseFiles)
+		{
+			if (dialogs.TryGetValue(DialogType.Cleansing, out var cleansingDialog))
+			{
+				cleansingDialog.UpdateSystemPrompt(PromptManager.GetCleansingPrompt());
+			}
+
+			if (dialogs.TryGetValue(DialogType.QuestionSeparator, out var questionSeparatorDialog))
+			{
+				questionSeparatorDialog.UpdateSystemPrompt(PromptManager.GetQuestionSeparatingPrompt());
+			}
+
+			if (dialogs.TryGetValue(DialogType.Classification, out var classificationDialog))
+			{
+				classificationDialog.UpdateSystemPrompt(
+					PromptManager.GetClassificationPrompt(
+						availableTypesAndFileNames.ToDictionary(
+							kvp => kvp.Key,
+							kvp => File.ReadAllText(kvp.Value.MetadataPath)
+						)
+					)
+				);
+			}
+		}
 
 		public string GetOutputMessage() => outputMessage.Trim();
 
@@ -193,7 +209,7 @@ namespace GPTProject.Core
 				return true;
 			}
 
-			var resultString = await userDialog.SendMessage(currentUserMessage);
+			var resultString = await dialogs[DialogType.User].SendMessage(currentUserMessage);
 			var result = JsonSerializer.Deserialize<HelperResponse>(resultString);
 
 			if (result is null)
@@ -223,7 +239,7 @@ namespace GPTProject.Core
 
 		private async Task<bool> SeparateQuestion(string userQuestion)
 		{
-			var separatedQuestionsString = await questionSeparatorDialog.SendMessage(userQuestion, rememberMessage: false);
+			var separatedQuestionsString = await dialogs[DialogType.QuestionSeparator].SendMessage(userQuestion, rememberMessage: false);
 
 			if (string.IsNullOrEmpty(separatedQuestionsString))
 			{
@@ -232,7 +248,6 @@ namespace GPTProject.Core
 			}
 
 			pendingQuestions = new Queue<string>(separatedQuestionsString.Split(';'));
-			questionSeparatorDialog.ClearDialog(false);
 			return true;
 		}
 
@@ -256,15 +271,13 @@ namespace GPTProject.Core
 
 		private async Task<string> PurgingReply(string reply)
 		{
-			var cleansingAnswer = await cleansingDialog.SendMessage(reply, rememberMessage: false);
+			var cleansingAnswer = await dialogs[DialogType.Cleansing].SendMessage(reply, rememberMessage: false);
 
 			if (string.IsNullOrEmpty(cleansingAnswer))
 			{
 				logger.Log("Не могу почистить", LogLevel.Error);
 				return reply;
 			}
-
-			cleansingDialog.ClearDialog(false);
 			return cleansingAnswer;
 		}
 
@@ -276,7 +289,7 @@ namespace GPTProject.Core
 				return new List<int> { -1 };
 			}
 
-			var typesString = await classificationDialog.SendMessage(userPrompt);
+			var typesString = await dialogs[DialogType.Classification].SendMessage(userPrompt);
 			ClassificationLogging(typesString);
 
 			var selectedIndexes = typesString.Split(';')
@@ -304,14 +317,14 @@ namespace GPTProject.Core
 				return;
 			}
 
-			userDialog.UpdateSystemPrompt(PromptManager.GetSystemPrompt(subjectArea, selectedSegments), false);
+			dialogs[DialogType.User].UpdateSystemPrompt(PromptManager.GetSystemPrompt(subjectArea, selectedSegments), false);
 		}
 
 		private string GetSourceByPath(string path) => File.ReadAllText(path);
 
 		private async Task<HelperResponse> FetchReplyFromBot(string userPrompt)
 		{
-			var resultString = await userDialog.SendMessage(userPrompt);
+			var resultString = await dialogs[DialogType.User].SendMessage(userPrompt);
 			var result = JsonSerializer.Deserialize<HelperResponse>(resultString);
 
 			if (result is null)
@@ -325,7 +338,7 @@ namespace GPTProject.Core
 
 		private async Task<SmallTalkResponse> ProcessSmallTalk(string userMessage)
 		{
-			var gptResponse = await smallTalkDialog.SendMessage(userMessage);
+			var gptResponse = await dialogs[DialogType.SmallTalk].SendMessage(userMessage);
 
 			try
 			{
@@ -365,15 +378,6 @@ namespace GPTProject.Core
 
 			return availableFiles;
 		}
-
-
-		private IChatDialog GetChatDialogProvider(Type type) => type switch
-		{
-			Type.ChatGPT => new ChatGPTDialog(),
-			Type.YandexGPT => new YandexGPTDialog(),
-			Type.GigaChat => new GigaChatDialog(),
-			_ => throw new NotImplementedException()
-		};
 
 		private void StateLogging()
 		{
