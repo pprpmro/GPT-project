@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace GPTProject.Common
+namespace GPTProject.Core.Common
 {
     public class Usage
     {

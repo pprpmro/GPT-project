@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GPTProject.Core", "GPTProje
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GPTProject.ConsoleUI", "GPTProject.ConsoleUI\GPTProject.ConsoleUI.csproj", "{C34FE5B7-572E-4847-AF7C-F3F4913D84A3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GPTProject.Common", "GPTProject.Common\GPTProject.Common.csproj", "{D7A9D326-426A-4E87-983F-48EF40F42BFF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{C34FE5B7-572E-4847-AF7C-F3F4913D84A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C34FE5B7-572E-4847-AF7C-F3F4913D84A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C34FE5B7-572E-4847-AF7C-F3F4913D84A3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7A9D326-426A-4E87-983F-48EF40F42BFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7A9D326-426A-4E87-983F-48EF40F42BFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7A9D326-426A-4E87-983F-48EF40F42BFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7A9D326-426A-4E87-983F-48EF40F42BFF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

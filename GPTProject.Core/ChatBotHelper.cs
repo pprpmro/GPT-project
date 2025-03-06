@@ -1,12 +1,13 @@
 ﻿using System.Text.Json;
 using GPTProject.Core.Logger;
+using GPTProject.Core.Providers;
 using GPTProject.Core.Providers.ChatGPT;
 using GPTProject.Core.Providers.GigaChat;
 using GPTProject.Core.Providers.YandexGPT;
 
 namespace GPTProject.Core
 {
-	public class ChatBotHelper
+    public class ChatBotHelper
 	{
 		private readonly ILogger logger;
 		private readonly Dictionary<DialogType, IChatDialog> dialogs = new();

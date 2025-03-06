@@ -1,10 +1,10 @@
 ﻿using System.Net.Http.Json;
-using GPTProject.Common;
+using GPTProject.Core.Common;
 using static GPTProject.Core.Providers.Settings.YandexGPT;
 
 namespace GPTProject.Core.Providers.YandexGPT
 {
-	public class YandexGPTDialog : IChatDialog
+    public class YandexGPTDialog : IChatDialog
 	{
 		private List<YandexMessage> messagesHistory;
 		private HttpClient httpClient;

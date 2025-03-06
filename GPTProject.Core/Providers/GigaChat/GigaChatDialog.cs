@@ -1,11 +1,11 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
-using GPTProject.Common;
+using GPTProject.Core.Common;
 using static GPTProject.Core.Providers.Settings.GigaChat;
 
 namespace GPTProject.Core.Providers.GigaChat
 {
-	public class GigaChatDialog : IChatDialog
+    public class GigaChatDialog : IChatDialog
 	{
 		private List<Message> messagesHistory;
 		private HttpClient httpClient;

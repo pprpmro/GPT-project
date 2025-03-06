@@ -1,4 +1,4 @@
-﻿namespace GPTProject.Core
+﻿namespace GPTProject.Core.Providers
 {
     public enum Type
     {

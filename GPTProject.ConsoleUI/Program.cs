@@ -1,10 +1,10 @@
 ﻿using GPTProject.Core;
 using GPTProject.Core.Logger;
-using Type = GPTProject.Core.Type;
+using Type = GPTProject.Core.Providers.Type;
 
 namespace GPTProject.ConsoleUI
 {
-	public class Program
+    public class Program
 	{
 		public static async Task Main(string[] args)
 		{

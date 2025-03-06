@@ -1,10 +1,10 @@
 ﻿using System.Net.Http.Json;
-using GPTProject.Common;
+using GPTProject.Core.Common;
 using static GPTProject.Core.Providers.Settings.ChatGPT;
 
 namespace GPTProject.Core.Providers.ChatGPT
 {
-	public class ChatGPTDialog : IChatDialog
+    public class ChatGPTDialog : IChatDialog
 	{
 
 		private List<Message> messagesHistory;
