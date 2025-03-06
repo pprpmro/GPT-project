@@ -1,4 +1,4 @@
-﻿namespace GPTProject.Core.Utils
+﻿namespace GPTProject.Common.Utils
 {
 	public static class EnvLoader
 	{

@@ -1,6 +1,6 @@
-﻿using GPTProject.Core;
-using GPTProject.Core.Logger;
-using GPTProject.Core.Providers;
+﻿using GPTProject.Core.Providers;
+using GPTProject.Common.Logging;
+using GPTProject.Core.ChatBot;
 
 namespace GPTProject.ConsoleUI
 {
@@ -27,7 +27,7 @@ namespace GPTProject.ConsoleUI
 				{ DialogType.SmallTalk, ProviderType.ChatGPT }
 			};
 
-			var helper = new ChatBotHelper(providerConfig, subjectArea, knowledgeBaseFiles, logger);
+			var helper = new Agent(providerConfig, subjectArea, knowledgeBaseFiles, logger);
 
 			logger.Log("ChatBotHelper готов к работе", LogLevel.Info);
 
@@ -41,7 +41,7 @@ namespace GPTProject.ConsoleUI
 			}
 		}
 
-		private static async Task RunChatBot(ChatBotHelper helper)
+		private static async Task RunChatBot(Agent helper)
 		{
 			while (true)
 			{

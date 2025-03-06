@@ -1,6 +1,7 @@
 ﻿using System.Net.Http.Json;
-using GPTProject.Core.Common;
-using static GPTProject.Core.Providers.Settings.ChatGPT;
+using GPTProject.Core.Interfaces;
+using GPTProject.Core.Models.Common;
+using static GPTProject.Common.Config.Settings.ChatGPT;
 
 namespace GPTProject.Core.Providers.ChatGPT
 {
@@ -46,7 +47,7 @@ namespace GPTProject.Core.Providers.ChatGPT
 
 			if (messagesHistory.Count == 0) return;
 
-			bool hasSystemPrompt = messagesHistory[0].Role == Role.Developer;
+			bool hasSystemPrompt = messagesHistory[0].Role == DialogRole.Developer;
 
 			if (lastNMessages.HasValue)
 			{
@@ -72,13 +73,13 @@ namespace GPTProject.Core.Providers.ChatGPT
 			if (clearDialog)
 				messagesHistory.Clear();
 
-			if (messagesHistory.Count > 0 && messagesHistory[0].Role == Role.Developer)
+			if (messagesHistory.Count > 0 && messagesHistory[0].Role == DialogRole.Developer)
 			{
 				messagesHistory[0].Content = message;
 			}
 			else
 			{
-				messagesHistory.Insert(0, new Message { Role = Role.Developer, Content = message });
+				messagesHistory.Insert(0, new Message { Role = DialogRole.Developer, Content = message });
 			}
 		}
 
@@ -91,7 +92,7 @@ namespace GPTProject.Core.Providers.ChatGPT
 
 			messagesHistory.Add(new Message()
 			{
-				Role = Role.User,
+				Role = DialogRole.User,
 				Content = message
 			});
 
@@ -121,7 +122,7 @@ namespace GPTProject.Core.Providers.ChatGPT
 			{
 				messagesHistory.Add(new Message()
 				{
-					Role = Role.Assistant,
+					Role = DialogRole.Assistant,
 					Content = choice
 				});
 			}

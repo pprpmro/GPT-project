@@ -1,6 +1,7 @@
 ﻿using System.Net.Http.Json;
-using GPTProject.Core.Common;
-using static GPTProject.Core.Providers.Settings.YandexGPT;
+using GPTProject.Core.Interfaces;
+using GPTProject.Core.Models.Common;
+using static GPTProject.Common.Config.Settings.YandexGPT;
 
 namespace GPTProject.Core.Providers.YandexGPT
 {
@@ -30,7 +31,7 @@ namespace GPTProject.Core.Providers.YandexGPT
 
 			messagesHistory.Add(new YandexMessage()
 			{
-				Role = Role.User,
+				Role = DialogRole.User,
 				Text = message
 			});
 
@@ -60,7 +61,7 @@ namespace GPTProject.Core.Providers.YandexGPT
 			{
 				messagesHistory.Add(new YandexMessage()
 				{
-					Role = Role.Assistant,
+					Role = DialogRole.Assistant,
 					Text = choice
 				});
 			}
@@ -100,7 +101,7 @@ namespace GPTProject.Core.Providers.YandexGPT
 
 			if (messagesHistory.Count == 0) return;
 
-			bool hasSystemPrompt = messagesHistory[0].Role == Role.Developer;
+			bool hasSystemPrompt = messagesHistory[0].Role == DialogRole.Developer;
 
 			if (lastNMessages.HasValue)
 			{
@@ -125,13 +126,13 @@ namespace GPTProject.Core.Providers.YandexGPT
 			if (clearDialog)
 				messagesHistory.Clear();
 
-			if (messagesHistory.Count > 0 && messagesHistory[0].Role == Role.Developer)
+			if (messagesHistory.Count > 0 && messagesHistory[0].Role == DialogRole.Developer)
 			{
 				messagesHistory[0].Text = message;
 			}
 			else
 			{
-				messagesHistory.Insert(0, new YandexMessage() { Role = Role.System, Text = message });
+				messagesHistory.Insert(0, new YandexMessage() { Role = DialogRole.System, Text = message });
 			}
 		}
 	}

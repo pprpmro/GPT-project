@@ -1,4 +1,4 @@
-﻿namespace GPTProject.Core.Logger
+﻿namespace GPTProject.Common.Logging
 {
 	public interface ILogger
 	{

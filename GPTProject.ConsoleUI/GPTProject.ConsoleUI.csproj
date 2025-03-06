@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\GPTProject.Common\GPTProject.Common.csproj" />
     <ProjectReference Include="..\GPTProject.Core\GPTProject.Core.csproj" />
     <ProjectReference Include="..\GPTTest\GPTProject.Core.csproj" />
   </ItemGroup>

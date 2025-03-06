@@ -1,6 +1,6 @@
-﻿using GPTProject.Core.Utils;
+﻿using GPTProject.Common.Utils;
 
-namespace GPTProject.Core.Providers
+namespace GPTProject.Common.Config
 {
 	public static class Settings
 	{

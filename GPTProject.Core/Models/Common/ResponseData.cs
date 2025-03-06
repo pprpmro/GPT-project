@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace GPTProject.Core.Common
+namespace GPTProject.Core.Models.Common
 {
     public class ResponseData
     {
