@@ -8,7 +8,7 @@ namespace GPTProject.ConsoleUI
 	{
 		public static async Task Main(string[] args)
 		{
-			var subjectArea = "Знаток о динозаврах, можешь рассказать о некоторых видах.";
+			var subjectArea = "Эксперт по некоторым динозаврам, отвечаю на вопросы о их видах, жизни и особенностях.";
 			var startPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\..\"));
 			string sourcesFolderPath = Path.Combine(startPath, @"GPTProject.ConsoleUI\Sources");
 			string segmentsFolderPath = Path.Combine(sourcesFolderPath, "Segments");

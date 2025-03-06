@@ -9,6 +9,7 @@ namespace GPTProject.Core.Providers
 		protected const int MinimalContentLength = 1;
 
 		public int MaxDialogHistorySize { get; set; }
+		public int CurrentHistorySymbolsCount { get { return messagesHistory.Where(x => x.Content != null).Select(x => x.Content.Length).Sum(); } }
 
 		public virtual void ClearDialog(bool clearSystemPrompt = true)
 		{

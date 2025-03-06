@@ -61,6 +61,7 @@ namespace GPTProject.Core.Providers.GigaChat
 
 		public override async Task<string> SendMessage(string content, bool rememberMessage = true)
 		{
+			messagesHistory[0].Role = DialogRole.System;
 			if (content.Length < minimalContentLength)
 			{
 				throw new ArgumentException("Message length is less than minimum");
