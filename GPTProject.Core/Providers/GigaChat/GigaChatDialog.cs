@@ -1,20 +1,15 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
-using GPTProject.Core.Interfaces;
 using GPTProject.Core.Models.Common;
 using static GPTProject.Common.Config.Settings.GigaChat;
 
 namespace GPTProject.Core.Providers.GigaChat
 {
-    public class GigaChatDialog : IChatDialog
+	public class GigaChatDialog : BaseChatDialog<Message>
 	{
-		private List<Message> messagesHistory;
-		private HttpClient httpClient;
 		private AccessData? accessData;
 		private const int minimalContentLength = 1;
 		private Guid RqUID;
-
-		public int MaxDialogHistorySize { get; set; }
 
 		public GigaChatDialog(int maxDialogHistorySize = 50)
 		{
@@ -64,7 +59,7 @@ namespace GPTProject.Core.Providers.GigaChat
 			}
 		}
 
-		public async Task<string> SendMessage(string content, bool rememberMessage = true)
+		public override async Task<string> SendMessage(string content, bool rememberMessage = true)
 		{
 			if (content.Length < minimalContentLength)
 			{
@@ -125,62 +120,6 @@ namespace GPTProject.Core.Providers.GigaChat
 			}
 
 			return choice;
-		}
-		public void ClearDialog(bool clearSystemPrompt = true)
-		{
-			if (clearSystemPrompt)
-			{
-				messagesHistory.Clear();
-			}
-			else
-			{
-				messagesHistory.RemoveRange(1, messagesHistory.Count - 1);
-			}
-		}
-
-		public void ClearDialog(bool clearSystemPrompt = false, int? lastNMessages = null)
-		{
-			if (clearSystemPrompt)
-			{
-				messagesHistory.Clear();
-				return;
-			}
-
-			if (messagesHistory.Count == 0) return;
-
-			bool hasSystemPrompt = messagesHistory[0].Role == DialogRole.Developer;
-
-			if (lastNMessages.HasValue)
-			{
-				int removeCount = Math.Min(lastNMessages.Value, messagesHistory.Count - (hasSystemPrompt ? 1 : 0));
-
-				if (removeCount > 0)
-				{
-					messagesHistory.RemoveRange(messagesHistory.Count - removeCount, removeCount);
-				}
-			}
-			else
-			{
-				messagesHistory.RemoveRange(hasSystemPrompt ? 1 : 0, messagesHistory.Count - (hasSystemPrompt ? 1 : 0));
-			}
-		}
-
-		public void UpdateSystemPrompt(string message, bool clearDialog = false)
-		{
-			if (string.IsNullOrEmpty(message))
-				throw new ArgumentException("System prompt cannot be null or empty.");
-
-			if (clearDialog)
-				messagesHistory.Clear();
-
-			if (messagesHistory.Count > 0 && messagesHistory[0].Role == DialogRole.Developer)
-			{
-				messagesHistory[0].Content = message;
-			}
-			else
-			{
-				messagesHistory.Insert(0, new Message { Role = DialogRole.Developer, Content = message });
-			}
 		}
 	}
 }

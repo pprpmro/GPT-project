@@ -1,19 +1,12 @@
 ﻿using System.Net.Http.Json;
-using GPTProject.Core.Interfaces;
 using GPTProject.Core.Models.Common;
 using static GPTProject.Common.Config.Settings.ChatGPT;
 
 namespace GPTProject.Core.Providers.ChatGPT
 {
-    public class ChatGPTDialog : IChatDialog
+	public class ChatGPTDialog : BaseChatDialog<Message>
 	{
-
-		private List<Message> messagesHistory;
-		private HttpClient httpClient;
-		private const int minimalContentLength = 1;
-
 		public int MessageCount { get { return messagesHistory.Count; } }
-		public int MaxDialogHistorySize { get; set; }
 
 		public ChatGPTDialog(int maxDialogHistorySize = 50)
 		{
@@ -25,67 +18,9 @@ namespace GPTProject.Core.Providers.ChatGPT
 
 		}
 
-		public void ClearDialog(bool clearSystemPrompt = true)
+		public override async Task<string> SendMessage(string message, bool rememberMessage = true)
 		{
-			if (clearSystemPrompt)
-			{
-				messagesHistory.Clear();
-			}
-			else
-			{
-				messagesHistory.RemoveRange(1, messagesHistory.Count - 1);
-			}
-		}
-
-		public void ClearDialog(bool clearSystemPrompt = false, int ? lastNMessages = null)
-		{
-			if (clearSystemPrompt)
-			{
-				messagesHistory.Clear();
-				return;
-			}
-
-			if (messagesHistory.Count == 0) return;
-
-			bool hasSystemPrompt = messagesHistory[0].Role == DialogRole.Developer;
-
-			if (lastNMessages.HasValue)
-			{
-				int removeCount = Math.Min(lastNMessages.Value, messagesHistory.Count - (hasSystemPrompt ? 1 : 0));
-
-				if (removeCount > 0)
-				{
-					messagesHistory.RemoveRange(messagesHistory.Count - removeCount, removeCount);
-				}
-			}
-			else
-			{
-				messagesHistory.RemoveRange(hasSystemPrompt ? 1 : 0, messagesHistory.Count - (hasSystemPrompt ? 1 : 0));
-			}
-		}
-
-
-		public void UpdateSystemPrompt(string message, bool clearDialog = false)
-		{
-			if (string.IsNullOrEmpty(message))
-				throw new ArgumentException("System prompt cannot be null or empty.");
-
-			if (clearDialog)
-				messagesHistory.Clear();
-
-			if (messagesHistory.Count > 0 && messagesHistory[0].Role == DialogRole.Developer)
-			{
-				messagesHistory[0].Content = message;
-			}
-			else
-			{
-				messagesHistory.Insert(0, new Message { Role = DialogRole.Developer, Content = message });
-			}
-		}
-
-		public async Task<string> SendMessage(string message, bool rememberMessage = true)
-		{
-			if (message.Length < minimalContentLength)
+			if (message.Length < MinimalContentLength)
 			{
 				throw new ArgumentException("Message length is less than minimum");
 			}
