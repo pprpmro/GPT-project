@@ -189,7 +189,7 @@ namespace GPTProject.Core.ChatBot
 				var questionToAnswer = pendingQuestions.Dequeue();
 				var partialAnswer = await GetReply(questionToAnswer);
 
-				if (partialAnswer.NeedСlarification)
+				if (!string.IsNullOrEmpty(partialAnswer.ClarificationQuestion))
 				{
 					outputMessage = partialAnswer.ClarificationQuestion;
 					currentState = DialogState.Clarifying;
@@ -210,7 +210,7 @@ namespace GPTProject.Core.ChatBot
 				return false;
 			}
 
-			if (clarificationAttempts >= MaxClarificationAttempts)
+			if (clarificationAttempts > MaxClarificationAttempts)
 			{
 				outputMessage = "Я не могу продолжать без более точной информации. Давайте попробуем другой вопрос.";
 				currentState = DialogState.Waiting;
@@ -226,7 +226,7 @@ namespace GPTProject.Core.ChatBot
 				return false;
 			}
 
-			if (result.NeedСlarification)
+			if (!string.IsNullOrEmpty(result.ClarificationQuestion))
 			{
 				clarificationAttempts++;
 				outputMessage = result.ClarificationQuestion + Environment.NewLine;
@@ -264,7 +264,7 @@ namespace GPTProject.Core.ChatBot
 
 			if (sourceIndexes.Contains(-1))
 			{
-				return new UserChatResponse { NeedСlarification = false, Response = "Некорректный запрос" };
+				return new UserChatResponse { Response = "В моей базе знаний нет информации как отвечать на этот запрос" };
 			}
 
 			if (!lastSourceTypeIndexes?.SequenceEqual(sourceIndexes) ?? true)
@@ -332,9 +332,13 @@ namespace GPTProject.Core.ChatBot
 			if (result is null)
 			{
 				logger.Log("Failed to parse bot response", LogLevel.Error);
-				return new UserChatResponse { NeedСlarification = false, Response = "Ошибка обработки ответа" };
+				return new UserChatResponse { Response = "Ошибка обработки ответа" };
 			}
 
+			if (string.IsNullOrEmpty(result.ClarificationQuestion))
+			{
+				clarificationQuestionsLogging();
+			}
 			return result;
 		}
 		private async Task<SmallTalkResponse> ProcessSmallTalk(string userMessage)
@@ -391,6 +395,11 @@ namespace GPTProject.Core.ChatBot
 		private void SeparatedQuestionsLogging(string questions)
 		{
 			logger.Log("Separated questions: " + questions, LogLevel.Info);
+		}
+
+		private void clarificationQuestionsLogging()
+		{
+			logger.Log("Clarifuing Is Needed");
 		}
 	}
 
