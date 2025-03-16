@@ -1,11 +1,12 @@
-﻿using System.Text.Json;
-using GPTProject.Core.Providers;
+﻿using GPTProject.Core.Providers;
 using GPTProject.Core.Providers.ChatGPT;
 using GPTProject.Core.Providers.GigaChat;
 using GPTProject.Core.Providers.YandexGPT;
 using GPTProject.Common.Logging;
 using GPTProject.Core.Interfaces;
 using GPTProject.Core.Models;
+using System.Text.RegularExpressions;
+using System.Text.Json;
 
 namespace GPTProject.Core.ChatBot
 {
@@ -218,7 +219,7 @@ namespace GPTProject.Core.ChatBot
 			}
 
 			var resultString = await dialogs[DialogType.User].SendMessage(currentUserMessage);
-			var result = JsonSerializer.Deserialize<UserChatResponse>(resultString);
+			var result = await FetchReplyFromBot(resultString);
 
 			if (result is null)
 			{
@@ -327,7 +328,17 @@ namespace GPTProject.Core.ChatBot
 		private async Task<UserChatResponse> FetchReplyFromBot(string userPrompt)
 		{
 			var resultString = await dialogs[DialogType.User].SendMessage(userPrompt);
-			var result = JsonSerializer.Deserialize<UserChatResponse>(resultString);
+			var responseMatch = Regex.Match(resultString, @"RESPONSE:\s*(.*)");
+			var clarificationMatch = Regex.Match(resultString, @"CLARIFICATION_QUESTION:\s*(.*)");
+
+			var response = responseMatch.Success ? responseMatch.Groups[1].Value.Trim() : "";
+			var clarificationQuestion = clarificationMatch.Success ? clarificationMatch.Groups[1].Value.Trim() : "";
+
+			var result = new UserChatResponse
+			{
+				Response = string.IsNullOrEmpty(response) ? "" : response,
+				ClarificationQuestion = string.IsNullOrEmpty(clarificationQuestion) ? "" : clarificationQuestion
+			};
 
 			if (result is null)
 			{
@@ -347,8 +358,17 @@ namespace GPTProject.Core.ChatBot
 
 			try
 			{
-				return JsonSerializer.Deserialize<SmallTalkResponse>(gptResponse) ??
-						new SmallTalkResponse { SmallTalk = "EMPTY", Questions = "EMPTY" };
+				var questionsMatch = Regex.Match(gptResponse, @"QUESTIONS:\s*(.*)");
+				var smallTalkMatch = Regex.Match(gptResponse, @"SMALL_TALK:\s*(.*)");
+
+				var questions = questionsMatch.Success ? questionsMatch.Groups[1].Value.Trim() : "EMPTY";
+				var smallTalk = smallTalkMatch.Success ? smallTalkMatch.Groups[1].Value.Trim() : "EMPTY";
+
+				return new SmallTalkResponse
+				{
+					Questions = string.IsNullOrEmpty(questions) ? "EMPTY" : questions,
+					SmallTalk = string.IsNullOrEmpty(smallTalk) ? "EMPTY" : smallTalk
+				};
 			}
 			catch (Exception ex)
 			{
