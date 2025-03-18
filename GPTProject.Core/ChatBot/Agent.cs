@@ -151,6 +151,8 @@ namespace GPTProject.Core.ChatBot
 			currentState = DialogState.Waiting;
 			return false;
 		}
+
+		//TODO Продумать как можно сдедать чтобы обработать случаи, када оба поля не пусты
 		private async Task<bool> ProcessSmallTalkState()
 		{
 			if (string.IsNullOrWhiteSpace(currentUserMessage))
@@ -160,21 +162,31 @@ namespace GPTProject.Core.ChatBot
 			}
 
 			var smallTalkResponse = await ProcessSmallTalk(currentUserMessage);
+			bool isQuestionsEmpty = string.IsNullOrEmpty(smallTalkResponse.Questions) || smallTalkResponse.Questions.Equals("EMPTY", StringComparison.OrdinalIgnoreCase);
+			bool isSmallTalkEmpty = string.IsNullOrEmpty(smallTalkResponse.SmallTalk) || smallTalkResponse.SmallTalk.Equals("EMPTY", StringComparison.OrdinalIgnoreCase);
 
-			if (smallTalkResponse.SmallTalk != "EMPTY")
+			if (isSmallTalkEmpty && isQuestionsEmpty)
 			{
-				outputMessage = smallTalkResponse.SmallTalk;
-			}
-
-			if (smallTalkResponse.Questions == "EMPTY")
-			{
+				outputMessage = GetRandomUnclearResponse();
 				currentState = DialogState.Waiting;
 				return true;
 			}
 
-			currentUserMessage = smallTalkResponse.Questions;
-			currentState = DialogState.Separating;
-			return true;
+			if (!isQuestionsEmpty)
+			{
+				currentUserMessage = smallTalkResponse.Questions;
+				currentState = DialogState.Separating;
+				return true;
+			}
+
+			if (!isSmallTalkEmpty)
+			{
+				outputMessage = smallTalkResponse.SmallTalk;
+				currentState = DialogState.Waiting;
+				return true;
+			}
+
+			return false;
 		}
 		private async Task<bool> ProcessSeparatingState()
 		{
@@ -464,6 +476,24 @@ namespace GPTProject.Core.ChatBot
 		private void clarificationQuestionsLogging()
 		{
 			logger.Log("Clarifying Is Needed");
+		}
+
+		private static readonly string[] unclearResponses =
+		{
+			"Я не могу обработать ваш запрос.",
+			"Ваш вопрос некорректен или не относится к теме.",
+			"Этот запрос выходит за рамки моей компетенции.",
+			"Я не могу ответить на этот вопрос в текущем контексте.",
+			"Уточните запрос, чтобы я мог вам помочь.",
+			"Этот вопрос не соответствует тематике диалога.",
+			"Попробуйте задать вопрос иначе.",
+			"Ваш запрос не может быть обработан в текущей форме."
+		};
+
+		private string GetRandomUnclearResponse()
+		{
+			var random = new Random();
+			return unclearResponses[random.Next(unclearResponses.Length)];
 		}
 	}
 
