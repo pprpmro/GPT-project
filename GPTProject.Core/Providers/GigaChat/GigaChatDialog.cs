@@ -18,6 +18,8 @@ namespace GPTProject.Core.Providers.GigaChat
 			RqUID = Guid.NewGuid();
 
 			MaxDialogHistorySize = maxDialogHistorySize;
+			TotalSendedCharacterCount = 0;
+
 		}
 
 		private async Task<AccessData> GetAccessData()
@@ -84,6 +86,7 @@ namespace GPTProject.Core.Providers.GigaChat
 				Model = Model,
 				Messages = messagesHistory
 			};
+			TotalSendedCharacterCount += GetHistoryCharacterCount();
 
 			using var response = await httpClient.PostAsJsonAsync(CompletionsEndpoint, Request);
 

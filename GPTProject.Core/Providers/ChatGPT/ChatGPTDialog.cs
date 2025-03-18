@@ -15,6 +15,7 @@ namespace GPTProject.Core.Providers.ChatGPT
 			httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {ApiKey}");
 
 			MaxDialogHistorySize = maxDialogHistorySize;
+			TotalSendedCharacterCount = 0;
 
 		}
 
@@ -36,6 +37,7 @@ namespace GPTProject.Core.Providers.ChatGPT
 				Model = Model,
 				Messages = messagesHistory
 			};
+			TotalSendedCharacterCount += GetHistoryCharacterCount();
 
 			using var response = await httpClient.PostAsJsonAsync(CompletionsEndpoint, requestData);
 

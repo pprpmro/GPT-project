@@ -15,6 +15,7 @@ namespace GPTProject.Core.Providers.YandexGPT
 			httpClient.DefaultRequestHeaders.Add("Authorization", $"Api-Key {ApiKey}");
 
 			MaxDialogHistorySize = maxDialogHistorySize;
+			TotalSendedCharacterCount = 0;
 		}
 
 		public override async Task<string> SendMessage(string message, bool rememberMessage = true)
@@ -35,6 +36,7 @@ namespace GPTProject.Core.Providers.YandexGPT
 				ModelUri = $"gpt://{CatalogId}/{Model}",
 				Messages = messagesHistory
 			};
+			TotalSendedCharacterCount += GetHistoryCharacterCount();
 
 			using var response = await httpClient.PostAsJsonAsync(CompletionsEndpoint, prompt);
 

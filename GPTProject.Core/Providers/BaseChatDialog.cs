@@ -3,12 +3,14 @@
 namespace GPTProject.Core.Providers
 {
 	public abstract class BaseChatDialog<TMessage> : IChatDialog where TMessage : IMessage, new()
-    {
+	{
 		protected List<TMessage> messagesHistory = new();
 		protected HttpClient httpClient = new();
 		protected const int MinimalContentLength = 1;
 
 		public int MaxDialogHistorySize { get; set; }
+		public int TotalSendedCharacterCount { get; set; }
+
 		public int CurrentHistorySymbolsCount { get { return messagesHistory.Where(x => x.Content != null).Select(x => x.Content.Length).Sum(); } }
 
 		public virtual void ClearDialog(bool clearSystemPrompt = true)
@@ -68,5 +70,10 @@ namespace GPTProject.Core.Providers
 		}
 
 		public abstract Task<string> SendMessage(string message, bool rememberMessage = true);
+
+		public int GetHistoryCharacterCount()
+		{
+			return messagesHistory.Sum(m => m.Content.Length);
+		}
 	}
 }

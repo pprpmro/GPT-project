@@ -6,7 +6,6 @@ using GPTProject.Common.Logging;
 using GPTProject.Core.Interfaces;
 using GPTProject.Core.Models;
 using System.Text.RegularExpressions;
-using System.Text.Json;
 
 namespace GPTProject.Core.ChatBot
 {
@@ -26,6 +25,14 @@ namespace GPTProject.Core.ChatBot
 
 		private int clarificationAttempts = 0;
 		private const int MaxClarificationAttempts = 3;
+
+		public int TotalSendedTokenCount
+		{
+			get
+			{
+				return 0; 
+			}
+		}
 
 		public DialogState DialogState { get { return currentState; } }
 
