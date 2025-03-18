@@ -43,7 +43,7 @@ namespace GPTProject.ConsoleUI
 			string sourcesFolderPath = Path.Combine(startPath, @"GPTProject.ConsoleUI\Sources");
 			string segmentsFolderPath = Path.Combine(sourcesFolderPath, "Segments");
 			List<string> segmentFiles = TxtFileHelper.GetListTxtFilePaths(segmentsFolderPath);
-			var systemPrompt = PromptManager.GetSystemPrompt(subjectArea, TxtFileHelper.GetListTxtFileText(segmentFiles));
+			var systemPrompt = PromptManager.GetClassicSystemPrompt(subjectArea, TxtFileHelper.GetListTxtFileText(segmentFiles));
 			chatDialog.UpdateSystemPrompt(systemPrompt, clearDialog: true);
 
 			logger.Log("Чат-бот запущен. Введите 'exit' для выхода.", LogLevel.Info);
