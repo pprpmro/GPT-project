@@ -12,28 +12,26 @@ namespace GPTProject.ConsoleUI
 
 		public static async Task Main(string[] args)
 		{
-			IChatDialog chatDialog = new ChatGPTDialog(50);
-			try
-			{
-				await RunClassicChatBot(chatDialog);
-			}
-			catch (Exception ex)
-			{
-				logger.Log($"Exception: {ex.Message}", LogLevel.Error);
-			}
-
-
-			//var agent = CreateAgent();
+			//IChatDialog chatDialog = new ChatGPTDialog(50);
 			//try
 			//{
-			//	await RunSegmentChatBot(agent);
+			//	await RunClassicChatBot(chatDialog);
 			//}
 			//catch (Exception ex)
 			//{
 			//	logger.Log($"Exception: {ex.Message}", LogLevel.Error);
 			//}
 
-			
+
+			var agent = CreateAgent();
+			try
+			{
+				await RunSegmentChatBot(agent);
+			}
+			catch (Exception ex)
+			{
+				logger.Log($"Exception: {ex.Message}", LogLevel.Error);
+			}
 		}
 
 		private static async Task RunClassicChatBot(IChatDialog chatDialog)
@@ -115,13 +113,18 @@ namespace GPTProject.ConsoleUI
 				bool success = await helper.Process();
 				if (!success)
 				{
-					Console.ForegroundColor = ConsoleColor.Red;
-					Console.WriteLine("Ошибка обработки запроса.");
-					Console.ResetColor();
+					logger.Log("Ошибка обработки запроса. Переключение на состояние Waiting", LogLevel.Error);
+					helper.SetWaitingState();
 					continue;
 				}
 
-				if (helper.DialogState is DialogState.Waiting or DialogState.Clarifying or DialogState.Error)
+                if (helper.DialogState is DialogState.Clarifying)
+                {
+                    Console.WriteLine(helper.GetOutputQuestionMessage());
+                }
+
+
+                if (helper.DialogState is DialogState.Waiting or DialogState.Clarifying or DialogState.Error)
 				{
 					Console.WriteLine(helper.GetOutputMessage());
 				}

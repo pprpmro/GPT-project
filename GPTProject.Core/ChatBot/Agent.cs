@@ -21,6 +21,9 @@ namespace GPTProject.Core.ChatBot
 		private List<int>? lastSourceTypeIndexes = null;
 		private string? currentUserMessage;
 		private string outputMessage = "";
+		private string clarifyResponse = "";
+
+		private string outputQuestionMessage = "";
 
 
 		private int clarificationAttempts = 0;
@@ -30,7 +33,7 @@ namespace GPTProject.Core.ChatBot
 		{
 			get
 			{
-				return 0; 
+				return dialogs.Values.Sum(dialog => dialog.TotalSendedCharacterCount);
 			}
 		}
 
@@ -98,10 +101,16 @@ namespace GPTProject.Core.ChatBot
 		}
 
 		public string GetOutputMessage() => outputMessage.Trim();
+		public string GetOutputQuestionMessage() => outputQuestionMessage.Trim();
 
 		public void SetCurrentUserMessage(string message)
 		{
 			currentUserMessage = message;
+		}
+
+		public void SetWaitingState()
+		{
+			currentState = DialogState.Waiting;
 		}
 
 		public async Task<bool> Process()
@@ -183,14 +192,20 @@ namespace GPTProject.Core.ChatBot
 		}
 		private async Task<bool> ProcessReplyingState()
 		{
-			if (pendingQuestions.Count == 0)
+			if (pendingQuestions.Count == 0 && string.IsNullOrEmpty(clarifyResponse))
 			{
 				logger.Log("No questions to process", LogLevel.Error);
 				return false;
 			}
 
-			bool needCleansing = pendingQuestions.Count > 1;
-			outputMessage = "";
+			bool needCleansing = pendingQuestions.Count > 1 ||
+					 (pendingQuestions.Count == 1 && !string.IsNullOrEmpty(clarifyResponse));
+
+			if (!string.IsNullOrEmpty(clarifyResponse))
+			{
+				outputMessage += clarifyResponse + Environment.NewLine;
+				clarifyResponse = "";
+			}
 
 			while (pendingQuestions.Count > 0)
 			{
@@ -199,7 +214,7 @@ namespace GPTProject.Core.ChatBot
 
 				if (!string.IsNullOrEmpty(partialAnswer.ClarificationQuestion))
 				{
-					outputMessage = partialAnswer.ClarificationQuestion;
+					outputQuestionMessage = partialAnswer.ClarificationQuestion;
 					currentState = DialogState.Clarifying;
 					return true;
 				}
@@ -225,6 +240,7 @@ namespace GPTProject.Core.ChatBot
 				return true;
 			}
 
+			clarifyResponse = "";
 			var resultString = await dialogs[DialogType.User].SendMessage(currentUserMessage);
 			var result = await FetchReplyFromBot(resultString);
 
@@ -237,11 +253,11 @@ namespace GPTProject.Core.ChatBot
 			if (!string.IsNullOrEmpty(result.ClarificationQuestion))
 			{
 				clarificationAttempts++;
-				outputMessage = result.ClarificationQuestion + Environment.NewLine;
+				outputQuestionMessage = result.ClarificationQuestion;
 				return true;
 			}
 
-			outputMessage = result.Response + Environment.NewLine;
+			clarifyResponse = result.Response + Environment.NewLine;
 			currentState = DialogState.Replying;
 			return true;
 		}
@@ -343,8 +359,13 @@ namespace GPTProject.Core.ChatBot
 
 			var result = new UserChatResponse
 			{
-				Response = string.IsNullOrEmpty(response) ? "" : response,
-				ClarificationQuestion = string.IsNullOrEmpty(clarificationQuestion) ? "" : clarificationQuestion
+				Response = string.IsNullOrEmpty(response) || response.Equals("EMPTY", StringComparison.OrdinalIgnoreCase)
+				? ""
+				: response,
+
+				ClarificationQuestion = string.IsNullOrEmpty(clarificationQuestion) || clarificationQuestion.Equals("EMPTY", StringComparison.OrdinalIgnoreCase)
+				? ""
+		:		 clarificationQuestion
 			};
 
 			if (result is null)
@@ -353,7 +374,7 @@ namespace GPTProject.Core.ChatBot
 				return new UserChatResponse { Response = "Ошибка обработки ответа" };
 			}
 
-			if (string.IsNullOrEmpty(result.ClarificationQuestion))
+			if (!string.IsNullOrEmpty(result.ClarificationQuestion))
 			{
 				clarificationQuestionsLogging();
 			}
@@ -417,7 +438,23 @@ namespace GPTProject.Core.ChatBot
 		}
 		private void ClassificationLogging(string types)
 		{
-			logger.Log("Classes of question: " + types, LogLevel.Info);
+			if (string.IsNullOrWhiteSpace(types) || types =="-1")
+			{
+				logger.Log("Classes of question: NONE", LogLevel.Info);
+				return;
+			}
+
+			var typeIndexes = types.Split(';', StringSplitOptions.RemoveEmptyEntries);
+			var classifiedTypes = typeIndexes
+				.Select(type => availableTypesAndFileNames.Keys.ElementAtOrDefault(int.Parse(type.Trim())-1))
+				.Where(typeName => typeName != null)
+				.ToList();
+
+			string logMessage = classifiedTypes.Any()
+				? $"Classes of question: {string.Join(", ", classifiedTypes)}"
+				: "Classes of question: UNKNOWN";
+
+			logger.Log(logMessage, LogLevel.Info);
 		}
 		private void SeparatedQuestionsLogging(string questions)
 		{
@@ -426,7 +463,7 @@ namespace GPTProject.Core.ChatBot
 
 		private void clarificationQuestionsLogging()
 		{
-			logger.Log("Clarifuing Is Needed");
+			logger.Log("Clarifying Is Needed");
 		}
 	}
 

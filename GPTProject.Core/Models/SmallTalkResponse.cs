@@ -2,7 +2,7 @@
 {
 	public class SmallTalkResponse
 	{
-		public string SmallTalk { get; set; } = "EMPTY";
-		public string Questions { get; set; } = "EMPTY";
+		public string SmallTalk { get; set; }
+		public string Questions { get; set; }
 	}
 }
