@@ -2,9 +2,10 @@
 using GPTProject.Core.Providers.ChatGPT;
 using GPTProject.Core.Providers.GigaChat;
 using GPTProject.Core.Providers.YandexGPT;
-using GPTProject.Common.Logging;
 using GPTProject.Core.Interfaces;
 using GPTProject.Core.Models;
+using GPTProject.Common.Logging;
+using GPTProject.Common.Utils;
 using System.Text.RegularExpressions;
 
 namespace GPTProject.Core.ChatBot
@@ -12,7 +13,7 @@ namespace GPTProject.Core.ChatBot
 	public class Agent
 	{
 		private readonly ILogger logger;
-		private readonly Dictionary<DialogType, IChatDialog> dialogs = new();
+		private readonly Dictionary<DialogType, IChatDialog> dialogs = new Dictionary<DialogType, IChatDialog>();
 		private readonly Dictionary<string, (string SegmentPath, string MetadataPath)> availableTypesAndFileNames;
 		private readonly string subjectArea;
 
@@ -167,7 +168,7 @@ namespace GPTProject.Core.ChatBot
 
 			if (isSmallTalkEmpty && isQuestionsEmpty)
 			{
-				outputMessage = GetRandomUnclearResponse();
+				outputMessage = Helper.GetRandomUnclearResponse();
 				currentState = DialogState.Waiting;
 				return true;
 			}
@@ -211,7 +212,7 @@ namespace GPTProject.Core.ChatBot
 			}
 
 			bool needCleansing = pendingQuestions.Count > 1 ||
-					 (pendingQuestions.Count == 1 && !string.IsNullOrEmpty(clarifyResponse));
+						(pendingQuestions.Count == 1 && !string.IsNullOrEmpty(clarifyResponse));
 
 			if (!string.IsNullOrEmpty(clarifyResponse))
 			{
@@ -334,10 +335,10 @@ namespace GPTProject.Core.ChatBot
 			ClassificationLogging(typesString);
 
 			var selectedIndexes = typesString.Split(';')
-											 .Select(t => int.TryParse(t, out var result) ? result : -1)
-											 .Where(i => i >= 1 && i <= availableTypesAndFileNames.Count)
-											 .Select(i => i - 1)
-											 .ToList();
+												.Select(t => int.TryParse(t, out var result) ? result : -1)
+												.Where(i => i >= 1 && i <= availableTypesAndFileNames.Count)
+												.Select(i => i - 1)
+												.ToList();
 
 			return selectedIndexes.Count > 0 ? selectedIndexes : new List<int> { -1 };
 		}
@@ -388,7 +389,7 @@ namespace GPTProject.Core.ChatBot
 
 			if (!string.IsNullOrEmpty(result.ClarificationQuestion))
 			{
-				clarificationQuestionsLogging();
+				ClarificationQuestionsLogging();
 			}
 			return result;
 		}
@@ -417,7 +418,6 @@ namespace GPTProject.Core.ChatBot
 			}
 		}
 
-
 		private Dictionary<string, (string SegmentPath, string MetadataPath)> GetAvailableTypesAndFileNames(KnowledgeBaseFiles knowledgeBaseFiles)
 		{
 			var availableFiles = new Dictionary<string, (string, string)>();
@@ -444,6 +444,7 @@ namespace GPTProject.Core.ChatBot
 
 			return availableFiles;
 		}
+
 		private void StateLogging()
 		{
 			logger.Log($"Current state: {currentState}", LogLevel.Info);
@@ -472,56 +473,9 @@ namespace GPTProject.Core.ChatBot
 		{
 			logger.Log("Separated questions: " + questions, LogLevel.Info);
 		}
-
-		private void clarificationQuestionsLogging()
+		private void ClarificationQuestionsLogging()
 		{
-			logger.Log("Clarifying Is Needed");
-		}
-
-		private static readonly string[] unclearResponses =
-		{
-			"Я не могу обработать ваш запрос.",
-			"Ваш вопрос некорректен или не относится к теме.",
-			"Этот запрос выходит за рамки моей компетенции.",
-			"Я не могу ответить на этот вопрос в текущем контексте.",
-			"Уточните запрос, чтобы я мог вам помочь.",
-			"Этот вопрос не соответствует тематике диалога.",
-			"Попробуйте задать вопрос иначе.",
-			"Ваш запрос не может быть обработан в текущей форме."
-		};
-
-		private string GetRandomUnclearResponse()
-		{
-			var random = new Random();
-			return unclearResponses[random.Next(unclearResponses.Length)];
+			logger.Log("Clarifying Is Needed", LogLevel.Warning);
 		}
 	}
-
-	public enum DialogState
-	{
-		Waiting,
-		SmallTalk,
-		Separating,
-		Clarifying,
-		Replying,
-		Purging,
-		Error
-	}
-
-	/*
-	graph TD;
-		A[Waiting] -->|Проверка Small Talk| B[SmallTalk]
-		B -->|Small Talk найден| C[Ответ пользователю и возврат в Waiting]
-		B -->|Small Talk отсутствует| D[Separating]
-		D -->|Разделение на вопросы| E[Classification]
-		E -->|Категория найдена| F[Replying]
-		E -->|Категория не найдена (-1)| G[Ответ "Не по теме" и возврат в Waiting]
-		F -->|Ответ найден| H[Purging]
-		F -->|Недостаточно информации| I[Clarifying]
-		I -->|Уточнение получено| F
-		I -->|3 неудачных попытки| J[Ответ "Я не могу продолжать" и возврат в Waiting]
-		H -->|Ответ обработан| A
-		F -->|Ошибка| K[Error]
-		K -->|Лог ошибки и возврат в Waiting| A
-	*/
 }
