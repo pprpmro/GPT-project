@@ -10,30 +10,6 @@ namespace GPTProject.ConsoleUI
 	{
 		static readonly ILogger logger = new ConsoleLogger();
 
-		public static async Task Main(string[] args)
-		{
-			//IChatDialog chatDialog = new ChatGPTDialog(50);
-			//try
-			//{
-			//	await RunClassicChatBot(chatDialog);
-			//}
-			//catch (Exception ex)
-			//{
-			//	logger.Log($"Exception: {ex.Message}", LogLevel.Error);
-			//}
-
-
-			var agent = CreateAgent();
-			try
-			{
-				await RunSegmentChatBot(agent);
-			}
-			catch (Exception ex)
-			{
-				logger.Log($"Exception: {ex.Message}", LogLevel.Error);
-			}
-		}
-
 		private static async Task RunClassicChatBot(IChatDialog chatDialog)
 		{
 			var subjectArea = "Эксперт по некоторым динозаврам, отвечаю на вопросы о их видах, жизни и особенностях.";
@@ -67,6 +43,31 @@ namespace GPTProject.ConsoleUI
 				Console.WriteLine($"Бот: {response}");
 			}
 			logger.Log($"Потрачего на диалог: {chatDialog.TotalSendedCharacterCount}", LogLevel.Error);
+
+		}
+
+		public static async Task Main(string[] args)
+		{
+			//IChatDialog chatDialog = new ChatGPTDialog(50);
+			//try
+			//{
+			//	await RunClassicChatBot(chatDialog);
+			//}
+			//catch (Exception ex)
+			//{
+			//	logger.Log($"Exception: {ex.Message}", LogLevel.Error);
+			//}
+
+
+			var agent = CreateAgent();
+			try
+			{
+				await agent.RunSegmentChatBot(() => Task.FromResult(GetUserMessage()));
+			}
+			catch (Exception ex)
+			{
+				logger.Log($"Exception: {ex.Message}", LogLevel.Error);
+			}
 		}
 
 		private static Agent CreateAgent()
@@ -93,45 +94,7 @@ namespace GPTProject.ConsoleUI
 
 			return helper;
 		}
-		private static async Task RunSegmentChatBot(Agent helper)
-		{
-			while (true)
-			{
-				if (helper.DialogState is DialogState.Waiting or DialogState.Clarifying)
-				{
-					var userMessage = GetUserMessage();
-					if (userMessage.Equals("exit", StringComparison.OrdinalIgnoreCase))
-					{
-						logger.Log("Завершение работы чат-бота...", LogLevel.Info);
-						break;
-					}
 
-					helper.SetCurrentUserMessage(userMessage);
-				}
-
-
-				bool success = await helper.Process();
-				if (!success)
-				{
-					logger.Log("Ошибка обработки запроса. Переключение на состояние Waiting", LogLevel.Error);
-					helper.SetWaitingState();
-					continue;
-				}
-
-                if (helper.DialogState is DialogState.Clarifying)
-                {
-                    Console.WriteLine(helper.GetOutputQuestionMessage());
-                }
-
-
-                if (helper.DialogState is DialogState.Waiting or DialogState.Clarifying or DialogState.Error)
-				{
-					Console.WriteLine(helper.GetOutputMessage());
-				}
-			}
-			logger.Log($"Потрачего на диалог: {helper.TotalSendedTokenCount}", LogLevel.Error);
-
-		}
 		private static string GetUserMessage()
 		{
 			Console.ForegroundColor = ConsoleColor.Yellow;

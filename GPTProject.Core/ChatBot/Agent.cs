@@ -101,17 +101,55 @@ namespace GPTProject.Core.ChatBot
 			}
 		}
 
-		public string GetOutputMessage() => outputMessage.Trim();
-		public string GetOutputQuestionMessage() => outputQuestionMessage.Trim();
+		private string GetOutputMessage() => outputMessage.Trim();
+		private string GetOutputQuestionMessage() => outputQuestionMessage.Trim();
 
-		public void SetCurrentUserMessage(string message)
+		private void SetCurrentUserMessage(string message)
 		{
 			currentUserMessage = message;
 		}
 
-		public void SetWaitingState()
+		private void SetWaitingState()
 		{
 			currentState = DialogState.Waiting;
+		}
+
+		public async Task RunSegmentChatBot(Func<Task<string>> GetUserMessageFunction)
+		{
+			while (true)
+			{
+				if (DialogState is DialogState.Waiting or DialogState.Clarifying)
+				{
+					var userMessage = await GetUserMessageFunction();
+					if (userMessage.Equals("exit", StringComparison.OrdinalIgnoreCase))
+					{
+						logger.Log("Завершение работы чат-бота...", LogLevel.Info);
+						break;
+					}
+					SetCurrentUserMessage(userMessage);
+				}
+
+
+				bool success = await Process();
+				if (!success)
+				{
+					logger.Log("Ошибка обработки запроса. Переключение на состояние Waiting", LogLevel.Error);
+					SetWaitingState();
+					continue;
+				}
+
+				if (DialogState is DialogState.Clarifying)
+				{
+					Console.WriteLine(GetOutputQuestionMessage());
+				}
+
+
+				if (DialogState is DialogState.Waiting or DialogState.Clarifying or DialogState.Error)
+				{
+					Console.WriteLine(GetOutputMessage());
+				}
+			}
+			logger.Log($"Потрачего на диалог: {TotalSendedTokenCount}", LogLevel.Error);
 		}
 
 		public async Task<bool> Process()
