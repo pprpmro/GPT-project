@@ -114,7 +114,7 @@ namespace GPTProject.Core.ChatBot
 			currentState = DialogState.Waiting;
 		}
 
-		public async Task RunSegmentChatBot(Func<Task<string>> GetUserMessageFunction)
+		public async Task Run(Func<Task<string>> GetUserMessageFunction)
 		{
 			while (true)
 			{
@@ -152,7 +152,7 @@ namespace GPTProject.Core.ChatBot
 			logger.Log($"Потрачего на диалог: {TotalSendedTokenCount}", LogLevel.Error);
 		}
 
-		public async Task<bool> Process()
+		private async Task<bool> Process()
 		{
 			try
 			{
