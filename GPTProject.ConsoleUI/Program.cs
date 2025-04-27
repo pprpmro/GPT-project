@@ -42,7 +42,7 @@ namespace GPTProject.ConsoleUI
 				var response = await chatDialog.SendMessage(userInput);
 				Console.WriteLine($"Бот: {response}");
 			}
-			logger.Log($"Потрачего на диалог: {chatDialog.TotalSendedCharacterCount}", LogLevel.Error);
+			logger.Log($"Потрачено на диалог: {chatDialog.TotalSendedCharacterCount}", LogLevel.Error);
 
 		}
 
@@ -62,7 +62,7 @@ namespace GPTProject.ConsoleUI
 			var agent = CreateAgent();
 			try
 			{
-				await agent.RunSegmentChatBot(() => Task.FromResult(GetUserMessage()));
+				await agent.Run(() => Task.FromResult(GetUserMessage()));
 			}
 			catch (Exception ex)
 			{
