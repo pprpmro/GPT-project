@@ -101,7 +101,7 @@ var payloads = new List<Payload>()
 
 //await service.UpsertStringsAsync(payloads);
 
-var results = await service.FindClosestAsync("first, second, third", 0.4f);
+var results = await service.FindClosestAsync("animal that loves bones and treats", 0.4f);
 
 foreach (var item in results)
 {
