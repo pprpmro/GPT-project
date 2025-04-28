@@ -2,6 +2,6 @@
 {
 	public interface IVectorizerResponse
 	{
-		float[] Embedding { get; set; }
+		float[][] Embedding { get; set; }
 	}
 }

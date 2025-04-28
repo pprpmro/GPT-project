@@ -7,6 +7,6 @@ namespace GPTProject.Core.Models.Common
 	{
 		[JsonPropertyName("embedding")]
 
-		public float[] Embedding { get; set; } = Array.Empty<float>();
+		public float[][] Embedding { get; set; } = Array.Empty<float[]>();
 	}
 }

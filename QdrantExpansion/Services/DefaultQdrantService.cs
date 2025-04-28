@@ -54,17 +54,25 @@ namespace QdrantExpansion.Services
 				var points = new List<VectorPoint>();
 				var vectorizer = new DefaultVectorizer();
 
+				var messages = new List<string>();
+
 				foreach (var item in payloads)
 				{
-					_request.Input = item.Text;
+					messages.Add(item.Text);
+				}
 
-					var response = await vectorizer.GetEmbeddingAsync(_request);
+				_request.Input = messages.ToArray();
+
+				var response = await vectorizer.GetEmbeddingAsync(_request);
+
+				for (var i = 0; i < payloads.Count; i++) 
+				{
 					points.Add(
 						new()
 						{
 							Id = Guid.NewGuid(),
-							Vector = response.Embedding,
-							Payload = item.GenerateDictionary()
+							Vector = response.Embedding[i],
+							Payload = payloads[i].GenerateDictionary()
 						}
 					);
 				}
@@ -83,10 +91,10 @@ namespace QdrantExpansion.Services
 			{
 				var payloads = new List<Dictionary<string, object?>>();
 
-				_request.Input = message;
+				_request.Input[0] = message;
 
 				var response = await _vectorizer.GetEmbeddingAsync(_request);
-				var result = await _repository.SearchAsync(_collectionName, response.Embedding, scoreThreshold, limit);
+				var result = await _repository.SearchAsync(_collectionName, response.Embedding[0], scoreThreshold, limit);
 
 				foreach (var item in result) 
 				{

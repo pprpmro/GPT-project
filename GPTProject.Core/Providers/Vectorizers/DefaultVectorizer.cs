@@ -1,6 +1,6 @@
 ﻿using GPTProject.Core.Models.Common;
 using System.Net.Http.Json;
-using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace GPTProject.Core.Providers.Vectorizers
 {
@@ -11,22 +11,23 @@ namespace GPTProject.Core.Providers.Vectorizers
 			var httpClient = new HttpClient();
 			httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {request.Key}");
 
-			using var response = await httpClient.PostAsJsonAsync(request.Url, request);
+			var response = await httpClient.PostAsJsonAsync(request.Url, request);
 
 			if (!response.IsSuccessStatusCode)
 			{
 				throw new Exception($"{(int)response.StatusCode} {response.StatusCode}");
 			}
 
-			using var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
-			var embedding = doc.RootElement
-				.GetProperty("data")
-				.EnumerateArray()
-				.First()
-				.GetProperty("embedding")
-				.Deserialize<float[]>();
+			var node = JsonNode.Parse(await response.Content.ReadAsStringAsync())!;
+			var embeddings = node["data"]!
+				.AsArray()
+				.Select(item => item!["embedding"]!
+								.AsArray()
+								.Select(x => (float)x!.GetValue<double>())
+								.ToArray())
+				.ToArray();
 
-			return new VectorizerResponse { Embedding = embedding };
+			return new VectorizerResponse { Embedding = embeddings };
 		}
 	}
 }

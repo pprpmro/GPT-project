@@ -12,7 +12,7 @@ namespace GPTProject.Core.Models.Common
 		public string Url { get; set; }
 
 		[JsonPropertyName("input")]
-		public string Input { get; set; } = "";
+		public string[] Input { get; set; } = Array.Empty<string>();
 
 		[JsonPropertyName("model")]
 		public string Model { get; set; } = "";

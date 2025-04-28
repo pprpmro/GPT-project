@@ -97,9 +97,11 @@ var payloads = new List<Payload>()
 	}
 };
 
-//await service.CreateCollectionAsync(1536);
+await service.DeleteCollectionAsync();
 
-//await service.UpsertStringsAsync(payloads);
+await service.CreateCollectionAsync(1536);
+
+await service.UpsertStringsAsync(payloads);
 
 var results = await service.FindClosestAsync("animal that loves bones and treats", 0.4f);
 
