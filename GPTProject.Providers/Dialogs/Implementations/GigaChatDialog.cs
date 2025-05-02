@@ -1,6 +1,5 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using GPTProject.Core.Providers;
 using GPTProject.Providers.Data;
 using static GPTProject.Providers.Config.Settings.GigaChat;
 
