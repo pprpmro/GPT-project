@@ -21,7 +21,7 @@ namespace GPTProject.Testing.Metrics
 				Encoding_format = "float",
 				Model = "text-embedding-3-small",
 			};
-			generatedTextRequest.Input[0] = generatedText;
+			generatedTextRequest.Input = new string[] { generatedText };
 
 			var referenceTextRequest = new VectorizerRequest()
 			{
@@ -30,7 +30,7 @@ namespace GPTProject.Testing.Metrics
 				Encoding_format = "float",
 				Model = "text-embedding-3-small",
 			};
-			referenceTextRequest.Input[0] = referenceText;
+			referenceTextRequest.Input = new string[] { referenceText };
 
 			var generatedEmbedding = await _vectorizer.GetEmbeddingAsync(generatedTextRequest);
 			var referenceEmbedding = await _vectorizer.GetEmbeddingAsync(referenceTextRequest);

@@ -3,11 +3,14 @@ using System.Globalization;
 
 namespace GPTProject.Testing.Metrics
 {
-	public class BERTScore
+	public class BERTScore : IDisposable
 	{
-		private const string ScriptFileName = "bert_score_temp.py";
 
-		private const string PythonScript = @"
+		private readonly string scriptPath;
+
+		private const string scriptFileName = "bert_score_temp.py";
+
+		private const string pythonScript = @"
 import sys
 from bert_score import score
 
@@ -17,14 +20,19 @@ ref_text = sys.argv[2]
 P, R, F1 = score([gen_text], [ref_text], lang='ru', verbose=False)
 print(round(F1[0].item(), 4))
 ";
+
+		public BERTScore()
+		{
+			scriptPath = Path.Combine(AppContext.BaseDirectory, scriptFileName);
+			File.WriteAllText(scriptPath, pythonScript);
+		}
+
 		public double CalculateScore(string generated, string reference)
 		{
-			File.WriteAllText(ScriptFileName, PythonScript);
-
 			var psi = new ProcessStartInfo
 			{
 				FileName = "python",
-				Arguments = $"{ScriptFileName} \"{Escape(generated)}\" \"{Escape(reference)}\"",
+				Arguments = $"\"{scriptPath}\" \"{Escape(generated)}\" \"{Escape(reference)}\"",
 				RedirectStandardOutput = true,
 				RedirectStandardError = true,
 				UseShellExecute = false,
@@ -41,9 +49,9 @@ print(round(F1[0].item(), 4))
 			string error = process.StandardError.ReadToEnd();
 			process.WaitForExit();
 
-			if (!string.IsNullOrWhiteSpace(error))
+			if (process.ExitCode != 0)
 			{
-				throw new Exception("Ошибка Python: " + error);
+				throw new Exception("Ошибка выполнения Python-скрипта: " + error);
 			}
 
 			return TryParseScore(output.Trim());
@@ -61,6 +69,24 @@ print(round(F1[0].item(), 4))
 				return Math.Round(result, 4);
 			}
 			return 0.0;
+		}
+
+		~BERTScore() => Dispose();
+
+		public void Dispose()
+		{
+			if (File.Exists(scriptPath))
+			{
+				try
+				{
+					File.Delete(scriptPath);
+				}
+				catch
+				{
+
+				}
+				GC.SuppressFinalize(this);
+			}
 		}
 	}
 }
