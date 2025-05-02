@@ -149,7 +149,7 @@ namespace GPTProject.Core.ChatBot
 					Console.WriteLine(GetOutputMessage());
 				}
 			}
-			logger.Log($"Потрачего на диалог: {TotalSendedTokenCount}", LogLevel.Error);
+			logger.Log($"Потрачено на диалог: {TotalSendedTokenCount}", LogLevel.Error);
 		}
 
 		private async Task<bool> Process()
@@ -191,7 +191,7 @@ namespace GPTProject.Core.ChatBot
 			return false;
 		}
 
-		//TODO Продумать как можно сдедать чтобы обработать случаи, када оба поля не пусты
+		//TODO Продумать как можно сделать чтобы обработать случаи, када оба поля не пусты
 		private async Task<bool> ProcessSmallTalkState()
 		{
 			if (string.IsNullOrWhiteSpace(currentUserMessage))

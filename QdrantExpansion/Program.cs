@@ -1,4 +1,6 @@
-﻿using GPTProject.Core.Models.Common;
+﻿using GPTProject.Core.ChatBot.LLMMemory;
+using GPTProject.Core.Models.Common;
+using GPTProject.Core.Providers.ChatGPT;
 using QdrantExpansion.Models;
 using QdrantExpansion.Repository;
 using QdrantExpansion.Services;
@@ -55,7 +57,7 @@ var result = await vect.GetEmbeddingAsync(request);*/
 
 //var a = await repo.GetAllCollectionsInfoAsync();
 
-var request = new VectorizerRequest() { Key = "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", Url = "https://api.openai.com/v1/embeddings", Encoding_format = "float", Model = "text-embedding-3-small" };
+/*var request = new VectorizerRequest() { Key = "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", Url = "https://api.openai.com/v1/embeddings", Encoding_format = "float", Model = "text-embedding-3-small" };
 var service = new DefaultQdrantService("realTestCollection", request);
 
 var payloads = new List<Payload>()
@@ -108,5 +110,8 @@ var results = await service.FindClosestAsync("animal that loves bones and treats
 foreach (var item in results)
 {
 	Console.WriteLine(item["text"]);
-}
+}*/
+
+var dialogueAgent = new DialogueAgent(new ChatGPTDialog());
+dialogueAgent.Run(() => Task.FromResult(Console.ReadLine()));
 

@@ -11,6 +11,9 @@ namespace GPTProject.Core.Providers
 		public int MaxDialogHistorySize { get; set; }
 		public int TotalSendedCharacterCount { get; set; }
 
+		public delegate void HistoryOverflowEvent(List<TMessage> messagesHistory);
+		public event HistoryOverflowEvent? HistoryOverflowNotify;
+
 		public int CurrentHistorySymbolsCount { get { return messagesHistory.Where(x => x.Content != null).Select(x => x.Content.Length).Sum(); } }
 
 		public virtual void ClearDialog(bool clearSystemPrompt = true)
@@ -74,6 +77,11 @@ namespace GPTProject.Core.Providers
 		public int GetHistoryCharacterCount()
 		{
 			return messagesHistory.Sum(m => m.Content.Length);
+		}
+
+		protected void RaiseHistoryOverflowEvent()
+		{
+			HistoryOverflowNotify?.Invoke(messagesHistory);
 		}
 	}
 }

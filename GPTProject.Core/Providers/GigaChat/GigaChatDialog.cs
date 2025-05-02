@@ -119,6 +119,7 @@ namespace GPTProject.Core.Providers.GigaChat
 
 			if (messagesHistory.Count > MaxDialogHistorySize)
 			{
+				RaiseHistoryOverflowEvent();
 				int removeCount = messagesHistory.Count - MaxDialogHistorySize;
 				messagesHistory.RemoveRange(1, removeCount);
 			}
