@@ -143,7 +143,7 @@ namespace GPTProject.Providers.Dialogs
 
 			if (messagesHistory.Count > MaxDialogHistorySize)
 			{
-				RaiseHistoryOverflowEvent();
+				HistoryOverflowNotify?.Invoke(messagesHistory);
 				int removeCount = messagesHistory.Count - MaxDialogHistorySize;
 				messagesHistory.RemoveRange(1, removeCount);
 			}
@@ -154,11 +154,6 @@ namespace GPTProject.Providers.Dialogs
 		public int GetHistoryCharacterCount()
 		{
 			return messagesHistory.Sum(m => m.Content.Length);
-		}
-
-		private void RaiseHistoryOverflowEvent()
-		{
-			HistoryOverflowNotify?.Invoke(messagesHistory);
 		}
 	}
 }

@@ -1,7 +1,7 @@
 ﻿using GPTProject.Core.ChatBot.LLMMemory;
+using GPTProject.Providers.Data.Vectorizers;
 using GPTProject.Providers.Dialogs.Implementations;
 using QdrantExpansion.Models;
-using QdrantExpansion.Repository;
 using QdrantExpansion.Services;
 
 //var repo = new QdrantRepository();
@@ -111,6 +111,7 @@ foreach (var item in results)
 	Console.WriteLine(item["text"]);
 }*/
 
-var dialogueAgent = new DialogueAgent(new ChatGPTDialog());
-dialogueAgent.Run(() => Task.FromResult(Console.ReadLine()));
+var dialogueAgent = new DialogueAgent(new ChatGPTDialog(), "Представь что ты котик и отвечай соответствующе");
+await dialogueAgent.Run(() => Task.FromResult(Console.ReadLine()), Console.WriteLine);
+Console.WriteLine("aaaaa");
 
