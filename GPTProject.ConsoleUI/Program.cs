@@ -1,8 +1,7 @@
-﻿using GPTProject.Core.Providers;
-using GPTProject.Core.ChatBot;
-using GPTProject.Core.Interfaces;
-using GPTProject.Core.Providers.ChatGPT;
+﻿using GPTProject.Core.ChatBot;
 using GPTProject.Common.Logging;
+using GPTProject.Providers.Dialogs.Interfaces;
+using GPTProject.Providers.Dialogs;
 
 namespace GPTProject.ConsoleUI
 {

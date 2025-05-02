@@ -1,4 +1,4 @@
-﻿using GPTProject.Core.Interfaces;
+﻿using GPTProject.Providers.Dialogs.Interfaces;
 
 namespace GPTProject.Testing.Metrics
 {

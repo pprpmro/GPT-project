@@ -1,5 +1,6 @@
-﻿using GPTProject.Core.Models.Common;
-using GPTProject.Core.Providers.Vectorizers;
+﻿using GPTProject.Providers.Data.Vectorizers;
+using GPTProject.Providers.Vectorizers.Implementation;
+using GPTProject.Providers.Vectorizers.Interfaces;
 using QdrantExpansion.Models;
 using QdrantExpansion.Repository;
 

@@ -1,12 +1,10 @@
-﻿using GPTProject.Core.Providers;
-using GPTProject.Core.Providers.ChatGPT;
-using GPTProject.Core.Providers.GigaChat;
-using GPTProject.Core.Providers.YandexGPT;
-using GPTProject.Core.Interfaces;
-using GPTProject.Core.Models;
+﻿using GPTProject.Core.Models;
 using GPTProject.Common.Logging;
 using GPTProject.Common.Utils;
 using System.Text.RegularExpressions;
+using GPTProject.Providers.Dialogs.Interfaces;
+using GPTProject.Providers.Dialogs.Implementations;
+using GPTProject.Providers.Dialogs;
 
 namespace GPTProject.Core.ChatBot
 {
@@ -66,7 +64,6 @@ namespace GPTProject.Core.ChatBot
 		private IChatDialog GetChatDialogProvider(ProviderType type) => type switch
 		{
 			ProviderType.ChatGPT => new ChatGPTDialog(),
-			ProviderType.YandexGPT => new YandexGPTDialog(),
 			ProviderType.GigaChat => new GigaChatDialog(),
 			_ => throw new NotImplementedException()
 		};

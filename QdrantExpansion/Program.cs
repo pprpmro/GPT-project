@@ -1,6 +1,5 @@
 ﻿using GPTProject.Core.ChatBot.LLMMemory;
-using GPTProject.Core.Models.Common;
-using GPTProject.Core.Providers.ChatGPT;
+using GPTProject.Providers.Dialogs.Implementations;
 using QdrantExpansion.Models;
 using QdrantExpansion.Repository;
 using QdrantExpansion.Services;

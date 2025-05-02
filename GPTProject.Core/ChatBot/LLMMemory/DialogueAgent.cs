@@ -1,6 +1,4 @@
-﻿using GPTProject.Core.Interfaces;
-using GPTProject.Core.Models.Common;
-using GPTProject.Core.Providers;
+﻿using GPTProject.Providers.Dialogs.Interfaces;
 
 namespace GPTProject.Core.ChatBot.LLMMemory
 {
@@ -12,8 +10,7 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 		public DialogueAgent(IChatDialog provider, string SystemPrompt = "") {
 			_provider = provider;
 			_systemPrompt = SystemPrompt;
-
-			(_provider as BaseChatDialog<Message>).HistoryOverflowNotify += OverflowHandler;
+			_provider.SetOverflowHandler(OverflowHandler);
 		}
 
 		public async Task Run(Func<Task<string>> GetUserMessageFunction)
@@ -25,7 +22,7 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 			}
 		}
 
-		void OverflowHandler(List<Message> messagesHistory)
+		void OverflowHandler(List<IMessage> messagesHistory)
 		{
 			Console.WriteLine("Overflow");
 		}

@@ -1,5 +1,5 @@
-﻿using GPTProject.Core.Models.Common;
-using GPTProject.Core.Providers.Vectorizers;
+﻿using GPTProject.Providers.Data.Vectorizers;
+using GPTProject.Providers.Vectorizers.Interfaces;
 
 namespace GPTProject.Testing.Metrics
 {
