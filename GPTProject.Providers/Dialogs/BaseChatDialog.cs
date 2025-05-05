@@ -151,9 +151,45 @@ namespace GPTProject.Providers.Dialogs
 			return choice;
 		}
 
+		public async Task<string> SendMessage()
+		{
+			var requestData = new TRequest()
+			{
+				Model = modelName,
+				Messages = messagesHistory
+			};
+
+			using var response = await httpClient.PostAsJsonAsync(completionsEndpoint, requestData);
+
+			if (!response.IsSuccessStatusCode)
+			{
+				throw new Exception($"{(int)response.StatusCode} {response.StatusCode}");
+			}
+
+			ResponseData? responseData = await response.Content.ReadFromJsonAsync<ResponseData>();
+			var choices = responseData?.Choices ?? new List<Choice>();
+			if (choices.Count == 0)
+			{
+				throw new Exception("No choices were returned by the API");
+			}
+
+			var choice = choices[0].Message.Content.Trim();
+			return choice;
+		}
+
 		public int GetHistoryCharacterCount()
 		{
 			return messagesHistory.Sum(m => m.Content.Length);
+		}
+
+		public void SetCustomDialog(List<IMessage> customMessagesHistory)
+		{
+			messagesHistory = customMessagesHistory;
+		}
+
+		public List<IMessage> GetDialog()
+		{
+			return messagesHistory;
 		}
 	}
 }

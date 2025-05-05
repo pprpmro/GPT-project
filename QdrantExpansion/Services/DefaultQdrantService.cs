@@ -92,7 +92,7 @@ namespace QdrantExpansion.Services
 			{
 				var payloads = new List<Dictionary<string, object?>>();
 
-				_request.Input[0] = message;
+				_request.Input = [message];
 
 				var response = await _vectorizer.GetEmbeddingAsync(_request);
 				var result = await _repository.SearchAsync(_collectionName, response.Embedding[0], scoreThreshold, limit);
@@ -108,6 +108,15 @@ namespace QdrantExpansion.Services
 			{
 				Console.WriteLine(ex);
 				return null;
+			}
+		}
+
+		public async Task CreateIfNeededAsync(int vectorSize)
+		{
+			var collections = await _repository.GetAllCollectionsInfoAsync();
+			if (!collections.Any(x => x.Name == _collectionName))
+			{
+				await CreateCollectionAsync(vectorSize);
 			}
 		}
 	}

@@ -1,15 +1,20 @@
-﻿using GPTProject.Providers.Dialogs.Interfaces;
+﻿using GPTProject.Providers.Data.Vectorizers;
+using GPTProject.Providers.Dialogs.Interfaces;
 
 namespace GPTProject.Core.ChatBot.LLMMemory
 {
 	public class DialogueAgent
 	{
 		private readonly IChatDialog _provider;
+		private readonly string _collectionName;
+		private readonly RememberingAgent _remAgent;
 
-		public DialogueAgent(IChatDialog provider, string SystemPrompt = "") {
+		public DialogueAgent(IChatDialog provider, string collectionName, VectorizerRequest request, string SystemPrompt = "") {
 			_provider = provider;
+			_collectionName = collectionName;
+			_remAgent = new RememberingAgent(_provider, _collectionName, request);
 
-			_provider.SetOverflowHandler(OverflowHandler);
+			_provider.SetOverflowHandler(OverflowHandlerAsync);
 			if (SystemPrompt != "") _provider.UpdateSystemPrompt(SystemPrompt);
 		}
 
@@ -18,13 +23,34 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 			while (true)
 			{
 				var userMessage = await GetUserMessageFunction();
+				await CheckCommand(userMessage);
+
 				ReturnFunction(await _provider.SendMessage(userMessage));
 			}
 		}
 
-		void OverflowHandler(List<IMessage> messagesHistory)
+		private void OverflowHandlerAsync(List<IMessage> messagesHistory)
 		{
-			Console.WriteLine("Overflow"); //поменяется
+			RunRemAgent();
+		}
+
+		private async Task<bool> CheckCommand(string message)
+		{
+			switch (message)
+			{
+				case "/rem":
+					RunRemAgent();
+					return true;
+
+				default:
+					return false;
+			}
+		}
+
+		private async Task RunRemAgent() 
+		{
+			_remAgent.Update(_provider.GetDialog());
+			await _remAgent.Run();
 		}
 	}
 }

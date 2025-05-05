@@ -1,5 +1,4 @@
-﻿using GPTProject.Core.ChatBot.LLMMemory;
-using GPTProject.Providers.Data.Vectorizers;
+﻿using GPTProject.Providers.Data.Vectorizers;
 using GPTProject.Providers.Dialogs.Implementations;
 using QdrantExpansion.Models;
 using QdrantExpansion.Services;
@@ -56,10 +55,10 @@ var result = await vect.GetEmbeddingAsync(request);*/
 
 //var a = await repo.GetAllCollectionsInfoAsync();
 
-/*var request = new VectorizerRequest() { Key = "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", Url = "https://api.openai.com/v1/embeddings", Encoding_format = "float", Model = "text-embedding-3-small" };
-var service = new DefaultQdrantService("realTestCollection", request);
+var request = new VectorizerRequest() { Key = "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", Url = "https://api.openai.com/v1/embeddings", Encoding_format = "float", Model = "text-embedding-3-small" };
+var service = new DefaultQdrantService("cat", request);
 
-var payloads = new List<Payload>()
+/*var payloads = new List<Payload>()
 {
 	new()
 	{
@@ -102,16 +101,18 @@ await service.DeleteCollectionAsync();
 
 await service.CreateCollectionAsync(1536);
 
-await service.UpsertStringsAsync(payloads);
+await service.UpsertStringsAsync(payloads);*/
 
-var results = await service.FindClosestAsync("animal that loves bones and treats", 0.4f);
+var results = await service.FindClosestAsync("любимый цвет пользователя");
 
 foreach (var item in results)
 {
 	Console.WriteLine(item["text"]);
-}*/
+}
 
-var dialogueAgent = new DialogueAgent(new ChatGPTDialog(), "Представь что ты котик и отвечай соответствующе");
+//var request = new VectorizerRequest() { Key = "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", Url = "https://api.openai.com/v1/embeddings", Encoding_format = "float", Model = "text-embedding-3-small" };
+
+/*var dialogueAgent = new DialogueAgent(new ChatGPTDialog(), "cat", request, "Представь что ты котик и отвечай соответствующе");
 await dialogueAgent.Run(() => Task.FromResult(Console.ReadLine()), Console.WriteLine);
-Console.WriteLine("aaaaa");
+Console.WriteLine("aaaaa");*/
 
