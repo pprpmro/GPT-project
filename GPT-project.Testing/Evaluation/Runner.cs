@@ -5,21 +5,21 @@ namespace GPTProject.Testing.Evaluation
 	public class Runner
 	{
 		private readonly BERTScore bertScoreRunner;
-		private readonly CosineSimilarityScore cosineScorer;
+		private readonly SemanticSimilarityScore cosineScorer;
 		private readonly LLMAsJudgeScore llmJudgeScorer;
 
 		private readonly object locker = new();
 		private readonly SemaphoreSlim _throttle = new SemaphoreSlim(1);
 		private const int RequestIntervalMs = 150;
 
-		public Runner(BERTScore bertScoreRunner, CosineSimilarityScore cosineScorer, LLMAsJudgeScore llmJudgeScorer)
+		public Runner(BERTScore bertScoreRunner, SemanticSimilarityScore cosineScorer, LLMAsJudgeScore llmJudgeScorer)
 		{
 			this.bertScoreRunner = bertScoreRunner;
 			this.cosineScorer = cosineScorer;
 			this.llmJudgeScorer = llmJudgeScorer;
 		}
 
-		public async Task<Result> EvaluateAsync(List<TextPair> pairs)
+		public async Task<Result> EvaluateAsync(List<TestItem> pairs)
 		{
 			var bertScores = new List<double>();
 			var cosineScores = new List<double>();
@@ -35,10 +35,10 @@ namespace GPTProject.Testing.Evaluation
 				bertScores.Add(bertScore);
 				cosineScores.Add(cosineScore);
 
-				var task = CalculateJudgeScore(pair);
-				llmTasks.Add(task);
+				//var task = CalculateJudgeScore(pair);
+				//llmTasks.Add(task);
 			}
-			await Task.WhenAll(llmTasks);
+			//await Task.WhenAll(llmTasks);
 
 			return new Result
 			{
@@ -48,7 +48,7 @@ namespace GPTProject.Testing.Evaluation
 				JudgeScore = judgeScores
 			};
 
-			Task CalculateJudgeScore(TextPair pair)
+			Task CalculateJudgeScore(TestItem pair)
 			{
 				return Task.Run(async () =>
 				{

@@ -15,16 +15,16 @@
 		public double CosineMax { get { return Math.Round(CosineScore.Max(), 4); } }
 
 		public List<double> JudgeScore { get; set; } = new List<double>();
-		public double JudgeAvg { get { return Math.Round(JudgeScore.Average(), 4); } }
-		public double JudgeMin { get { return Math.Round(JudgeScore.Min(), 4); } }
-		public double JudgeMax { get { return Math.Round(JudgeScore.Max(), 4); } }
+		public double JudgeAvg { get { return JudgeScore.Count > 0 ? Math.Round(JudgeScore.Average(), 4) : 0.0; } }
+		public double JudgeMin { get { return JudgeScore.Count > 0 ? Math.Round(JudgeScore.Min(), 4) : 0.0; } }
+		public double JudgeMax { get { return JudgeScore.Count > 0 ? Math.Round(JudgeScore.Max(), 4) : 0.0; } }
 
 		public override string ToString()
 		{
 			return
 				$"Pair count {PairCount} {Environment.NewLine}" +
 				$"BERTScore: avg={BertScoreAvg}, min={BertScoreMin}, max={BertScoreMax} {Environment.NewLine}" +
-				$"Cosine: avg={CosineAvg}, min={CosineMin}, max={CosineMax} {Environment.NewLine}" +
+				$"Semantic Similarity: avg={CosineAvg}, min={CosineMin}, max={CosineMax} {Environment.NewLine}" +
 				$"Judge: avg={JudgeAvg}, min={JudgeMin}, max={JudgeMax}";
 		}
 	}

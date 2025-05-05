@@ -3,11 +3,11 @@ using GPTProject.Providers.Vectorizers.Interfaces;
 
 namespace GPTProject.Testing.Metrics
 {
-	public class CosineSimilarityScore
+	public class SemanticSimilarityScore
 	{
 		private readonly IVectorizer _vectorizer;
 
-		public CosineSimilarityScore(IVectorizer vectorizer)
+		public SemanticSimilarityScore(IVectorizer vectorizer)
 		{
 			_vectorizer = vectorizer;
 		}

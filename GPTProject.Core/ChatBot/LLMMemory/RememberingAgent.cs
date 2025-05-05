@@ -1,8 +1,8 @@
 ﻿using GPTProject.Providers.Data.Vectorizers;
 using GPTProject.Providers.Dialogs.Interfaces;
+using System.Text.Json;
 using QdrantExpansion.Models;
 using QdrantExpansion.Services;
-using System.Text.Json;
 
 namespace GPTProject.Core.ChatBot.LLMMemory
 {

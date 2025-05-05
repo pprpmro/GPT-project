@@ -5,12 +5,11 @@ namespace GPTProject.Testing.Metrics
 	public class LLMAsJudgeScore
 	{
 		private readonly IChatDialog dialog;
-		private readonly string systemPrompt = "Ты эксперт, оценивающий ответы. Тебе дан пользовательский вопрос, эталонный ответ и сгенерированный ответ.";
 
 		public LLMAsJudgeScore(IChatDialog dialog)
 		{
 			this.dialog = dialog;
-			this.dialog.UpdateSystemPrompt(this.systemPrompt);
+			this.dialog.UpdateSystemPrompt(GetSystemPrompt());
 		}
 
 		public async Task<int?> CalculateScoreAsync(string question, string reference, string generated)
@@ -19,8 +18,7 @@ namespace GPTProject.Testing.Metrics
 	$@"Вопрос: {question} {Environment.NewLine}
 Эталонный ответ: {reference} {Environment.NewLine}
 Сгенерированный ответ: {generated} {Environment.NewLine}
-
-Оцени сгенерированный ответ по 5-балльной шкале, где 1 — полностью неверно, а 5 — абсолютно точно соответствует эталону. Ответь только цифрой.";
+Ответь только цифрой.";
 
 			try
 			{
@@ -36,6 +34,19 @@ namespace GPTProject.Testing.Metrics
 			}
 
 			return null;
+		}
+
+		private static string GetSystemPrompt()
+		{
+			return $"Вы выступаете в роли независимого эксперта по оценке качества текстов, сгенерированных языковыми моделями." +
+				$"Ваша задача — сравнить сгенерированный ответ с эталонным, основываясь на его структурной чёткости, лаконичности, ясности изложения и отсутствии избыточной или дублирующей информации." +
+				$"Оцените сгенерированный ответ по 5-балльной шкале, где: {Environment.NewLine}" +
+				$"5 — идеально соответствует эталону по структуре и подаче, максимально чётко и лаконично, без лишних фрагментов; {Environment.NewLine}" +
+				$"4 — в целом чётко, но есть незначительная избыточность или перегруженность формулировок; {Environment.NewLine}" +
+				$"3 — заметно перегружено или слабо структурировано, хотя суть соблюдена; {Environment.NewLine}" +
+				$"2 — есть существенная избыточность, многословие или путаность; {Environment.NewLine}" +
+				$"1 — ответ чрезмерно размыт, плохо читается или почти полностью состоит из лишней информации. {Environment.NewLine}" +
+				$"Важно: не проверяйте фактическую достоверность ответа, оценивайте только форму подачи, стиль и уместность содержания.";
 		}
 	}
 }

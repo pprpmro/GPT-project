@@ -1,6 +1,6 @@
 ﻿namespace GPTProject.Testing.Evaluation
 {
-	public class TextPair
+	public class TestItem
 	{
 		public string Question { get; set; } = string.Empty;
 		public string Generated { get; set; } = string.Empty;

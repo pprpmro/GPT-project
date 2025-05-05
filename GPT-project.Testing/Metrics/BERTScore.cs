@@ -49,7 +49,7 @@ print(round(F1[0].item(), 4))
 			string error = process.StandardError.ReadToEnd();
 			process.WaitForExit();
 
-			if (process.ExitCode != 0)
+			if (process.ExitCode != 0 || !string.IsNullOrEmpty(error))
 			{
 				throw new Exception("Ошибка выполнения Python-скрипта: " + error);
 			}
