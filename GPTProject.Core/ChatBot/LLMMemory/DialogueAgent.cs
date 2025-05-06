@@ -23,7 +23,7 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 			while (true)
 			{
 				var userMessage = await GetUserMessageFunction();
-				await CheckCommand(userMessage);
+				if(await CheckCommand(userMessage)) { continue; }
 
 				ReturnFunction(await _provider.SendMessage(userMessage));
 			}
@@ -38,7 +38,7 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 		{
 			switch (message)
 			{
-				case "/rem":
+				case "/save":
 					RunRemAgent();
 					return true;
 

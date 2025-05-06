@@ -6,6 +6,8 @@ using GPTProject.Testing.Metrics;
 using GPTProject.Testing.Evaluation;
 using GPTProject.Providers.Vectorizers.Implementation;
 using GPTProject.Providers.Dialogs.Implementations;
+using GPTProject.Providers.Data.Vectorizers;
+using GPTProject.Core.ChatBot.LLMMemory;
 
 namespace GPTProject.ConsoleUI
 {
@@ -65,7 +67,7 @@ namespace GPTProject.ConsoleUI
 			//}
 
 
-			var agent = CreateAgent();
+			/*var agent = CreateAgent();
 			try
 			{
 				await agent.Run(() => Task.FromResult(GetUserMessage()));
@@ -73,7 +75,18 @@ namespace GPTProject.ConsoleUI
 			catch (Exception ex)
 			{
 				logger.Log($"Exception: {ex.Message}", LogLevel.Error);
-			}
+			}*/
+
+			var request = new VectorizerRequest()
+			{
+				Key = "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",
+				Url = "https://api.openai.com/v1/embeddings",
+				Encoding_format = "float",
+				Model = "text-embedding-3-small",
+			};
+
+			var dialogue = new DialogueAgent(new ChatGPTDialog(), "cat", request, "Представь что ты котик и веди себя соответствующе");
+			await dialogue.Run(() => Task.FromResult(GetUserMessage()), Console.WriteLine);
 		}
 
 		private static Agent CreateAgent()

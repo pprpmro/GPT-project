@@ -41,9 +41,9 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 				await _qdrantService.CreateIfNeededAsync(1536); //изменить, вытягивать размер из списка векторизаторов
 				await _qdrantService.UpsertStringsAsync(payloads);
 			}
-			catch (Exception)
+			catch (Exception ex)
 			{
-				Console.WriteLine("Wrond JSON format");
+				Console.WriteLine("Error", ex.Message);
 			}
 		}
 	}
