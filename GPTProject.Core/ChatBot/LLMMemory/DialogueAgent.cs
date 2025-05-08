@@ -1,4 +1,5 @@
 ﻿using GPTProject.Providers.Data.Vectorizers;
+using GPTProject.Providers.Dialogs.Implementations;
 using GPTProject.Providers.Dialogs.Interfaces;
 
 namespace GPTProject.Core.ChatBot.LLMMemory
@@ -7,12 +8,14 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 	{
 		private readonly IChatDialog _provider;
 		private readonly string _collectionName;
-		private readonly RememberingAgent _remAgent;
+		private readonly MemoryAgent _memoryAgent;
+
+		private string _memories;
 
 		public DialogueAgent(IChatDialog provider, string collectionName, VectorizerRequest request, string SystemPrompt = "") {
 			_provider = provider;
 			_collectionName = collectionName;
-			_remAgent = new RememberingAgent(_provider, _collectionName, request);
+			_memoryAgent = new MemoryAgent(new ChatGPTDialog(), _collectionName, request);
 
 			_provider.SetOverflowHandler(OverflowHandlerAsync);
 			if (SystemPrompt != "") _provider.UpdateSystemPrompt(SystemPrompt);
@@ -25,13 +28,15 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 				var userMessage = await GetUserMessageFunction();
 				if(await CheckCommand(userMessage)) { continue; }
 
-				ReturnFunction(await _provider.SendMessage(userMessage));
+				_memories = await _memoryAgent.Restore(userMessage);
+
+				ReturnFunction(await _provider.SendMessage(PromptManager.GetThisIsWhatYouRememberPrompt(_memories, userMessage)));
 			}
 		}
 
 		private void OverflowHandlerAsync(List<IMessage> messagesHistory)
 		{
-			RunRemAgent();
+			_memoryAgent.Save(_provider.GetDialog());
 		}
 
 		private async Task<bool> CheckCommand(string message)
@@ -39,18 +44,12 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 			switch (message)
 			{
 				case "/save":
-					RunRemAgent();
+					await _memoryAgent.Save(_provider.GetDialog());
 					return true;
 
 				default:
 					return false;
 			}
-		}
-
-		private async Task RunRemAgent() 
-		{
-			_remAgent.Update(_provider.GetDialog());
-			await _remAgent.Run();
 		}
 	}
 }

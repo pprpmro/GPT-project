@@ -6,13 +6,13 @@ using QdrantExpansion.Services;
 
 namespace GPTProject.Core.ChatBot.LLMMemory
 {
-	public class RememberingAgent
+	public class MemoryAgent
 	{
 		private readonly IChatDialog _provider;
 		private readonly DefaultQdrantService _qdrantService;
 		private readonly JsonSerializerOptions _options;
 
-		public RememberingAgent(IChatDialog provider, string collectionName, VectorizerRequest request) {
+		public MemoryAgent(IChatDialog provider, string collectionName, VectorizerRequest request) {
 			_provider = provider;
 			_qdrantService = new DefaultQdrantService(collectionName, request);
 			_options = new JsonSerializerOptions
@@ -21,14 +21,11 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 			};
 		}
 
-		public void Update(List<IMessage> messagesHistory)
+		public async Task Save(List<IMessage> messagesHistory)
 		{
 			_provider.SetCustomDialog(messagesHistory);
-			_provider.UpdateSystemPrompt(PromptManager.GetRemembererPrompt());
-		}
+			_provider.UpdateSystemPrompt(PromptManager.GetSavingPrompt());
 
-		public async Task Run()
-		{
 			var response = await _provider.SendMessage();
 			try
 			{
@@ -45,6 +42,31 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 			{
 				Console.WriteLine("Error", ex.Message);
 			}
+		}
+
+		public async Task<string> Restore(string message)
+		{
+			_provider.UpdateSystemPrompt(PromptManager.GetRestoringPrompt());
+
+			var response = await _provider.SendMessage(message);
+			try
+			{
+				string[] strings = JsonSerializer.Deserialize<string[]>(response);
+				var searchResult = await _qdrantService.FindClosestForManyAsync(strings, 0.4f);
+
+				var results = new List<string>();
+				foreach (var item in searchResult)
+				{
+					if(!results.Contains(item["text"].ToString())) { results.Add(item["text"].ToString()); }
+				}
+				return string.Join(Environment.NewLine, results.ToArray());
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine("Error", ex.Message);
+			}
+
+			return string.Empty;
 		}
 	}
 }

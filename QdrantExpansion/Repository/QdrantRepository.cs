@@ -94,6 +94,53 @@ namespace QdrantExpansion.Repository
 			return points;
 		}
 
+		public async Task<IEnumerable<VectorPoint>> SearchBatchAsync(
+		string collectionName,
+		float[][] vectors,
+		float scoreThreshold,
+		int limit)
+		{
+			var pointsBatch = new List<SearchPoints>();
+
+			foreach (var vector in vectors)
+			{
+				pointsBatch.Add(
+					new SearchPoints
+					{
+						Vector = { vector },
+						Limit = (ulong)limit,
+						WithPayload = true,
+						WithVectors = true,
+						ScoreThreshold = scoreThreshold
+					}
+				);
+			}
+
+			var batchResults = await _client.SearchBatchAsync(collectionName, pointsBatch);
+
+			var points = new List<VectorPoint>();
+
+			foreach (var batchResult in batchResults)
+			{
+				foreach (var result in batchResult.Result)
+				{
+					var payload = result.Payload.ToDictionary(
+					kvp => kvp.Key,
+					kvp => JsonSerializer.Deserialize<object>(kvp.Value.StringValue, _jsonOptions));
+
+					points.Add(new VectorPoint
+					{
+						Id = Guid.Parse(result.Id.Uuid),
+						Vector = [.. result.Vectors.Vector.Data],
+						Payload = payload,
+						Score = result.Score
+					});
+				}
+			}
+
+			return points;
+		}
+
 		public async Task DeletePayloadAsync(string collectionName, string payloadKey, ulong pointId)
 		{
 			await _client.DeletePayloadAsync(

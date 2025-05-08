@@ -111,6 +111,31 @@ namespace QdrantExpansion.Services
 			}
 		}
 
+		public async Task<List<Dictionary<string, object?>>?> FindClosestForManyAsync(string[] messages, float scoreThreshold = _defaultScoreThreshold, int limit = _defaultLimit)
+		{
+			try
+			{
+				var payloads = new List<Dictionary<string, object?>>();
+
+				_request.Input = messages;
+
+				var response = await _vectorizer.GetEmbeddingAsync(_request);
+				var result = await _repository.SearchBatchAsync(_collectionName, response.Embedding, scoreThreshold, limit);
+
+				foreach (var item in result)
+				{
+					payloads.Add(item.Payload);
+				}
+
+				return payloads;
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex);
+				return null;
+			}
+		}
+
 		public async Task CreateIfNeededAsync(int vectorSize)
 		{
 			var collections = await _repository.GetAllCollectionsInfoAsync();
