@@ -24,6 +24,7 @@ namespace GPTProject.Providers.Dialogs
 			httpClient = new HttpClient();
 			this.modelName = modelName;
 			this.completionsEndpoint = completionsEndpoint;
+			this.TotalSendedCharacterCount = 0;
 		}
 
 		public int MaxDialogHistorySize { get; set; }
