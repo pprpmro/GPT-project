@@ -1,6 +1,6 @@
-﻿namespace GPTProject.Providers.Configurations
+﻿namespace GPTProject.Providers.Common
 {
-	public static class EnvLoader
+	public static class EnvironmentLoader
 	{
 		private static readonly string DefaultEnvContent =
 		"# ChatGPT" + Environment.NewLine +

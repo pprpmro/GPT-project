@@ -1,12 +1,12 @@
-﻿namespace GPTProject.Providers.Configurations
+﻿namespace GPTProject.Providers.Common
 {
-	public static class DialogConfigurations
+	public static class Configurations
 	{
 		public static class ChatGPT
 		{
 			public static string ApiKey => EnvironmentLoader.GetEnvironmentVariable("CHATGPT_API_KEY");
 
-			public static string CompletionsEndpoint = "https://api.openai.com/v1/chat/completions";
+			public static string DialogCompletionsEndpoint = "https://api.openai.com/v1/chat/completions";
 			public static class DialogModels
 			{
 				public static string GPT_3_5_Turbo = "gpt-3.5-turbo";
@@ -24,6 +24,13 @@
 				public static string O3_Mini = "o3-mini";
 				public static string O4_Mini = "o4-mini";
 			}
+
+			public static string EmbeddingEndpoint = "https://api.openai.com/v1/embeddings";
+			public static class EmbeddingModels
+			{
+				public static string Default = "Embeddings";
+				public static int DefaultLength = 512;
+			}
 		}
 
 		public static class YandexGPT
@@ -32,11 +39,23 @@
 			public static string CatalogId => EnvironmentLoader.GetEnvironmentVariable("YANDEXGPT_CATALOG_ID");
 			public static string KeyId => EnvironmentLoader.GetEnvironmentVariable("YANDEXGPT_KEY_ID");
 
-			public static string CompletionsEndpoint = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion";
-
+			public static string DialogCompletionsEndpoint = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion";
 			public static class DialogModels
 			{
 				public static string Lite = "yandexgpt-lite";
+			}
+
+			public static string EmbeddingEndpoint = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion";
+			public static class EmbeddingModels
+			{
+				public static string Small = "text-embedding-3-small";
+				public static int SmallLength = 1536;
+
+				public static string Large = "text-embedding-3-large";
+				public static int LargeLength = 3072;
+
+				public static string Ada = "text-embedding-ada-002";
+				public static int AdaLength = 1536;
 			}
 		}
 
@@ -46,11 +65,23 @@
 
 			public static string Scope = "GIGACHAT_API_PERS";
 			public static string AccessTokenEndpoint = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth";
-			public static string CompletionsEndpoint = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions";
+
+			public static string DialogEndpoint = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions";
 			public static class DialogModels
 			{
 				public static string Pro = "GigaChat-Pro";
-				public static string Default = "GigaChat:latest";
+				public static string Max = "GigaChat-Max";
+				public static string Lite = "GigaChat:latest";
+			}
+
+			public static string EmbeddingEndpoint = "https://gigachat.devices.sberbank.ru/api/v1/embeddings";
+			public static class EmbeddingModels
+			{
+				public static string Default = "Embeddings";
+				public static int DefaultLength = 512;
+
+				public static string Giga = "EmbeddingsGigaR";
+				public static int GigaLength = 4096;
 			}
 		}
 	}

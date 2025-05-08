@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using GPTProject.Providers.Data;
-using static GPTProject.Providers.Configurations.DialogConfigurations.GigaChat;
+using static GPTProject.Providers.Common.Configurations.GigaChat;
 
 namespace GPTProject.Providers.Dialogs.Implementations
 {
@@ -12,7 +12,7 @@ namespace GPTProject.Providers.Dialogs.Implementations
 		private Guid RqUID;
 
 		public GigaChatDialog(int maxDialogHistorySize = 50)
-			: base(DialogModels.Pro, CompletionsEndpoint)
+			: base(DialogModels.Pro, DialogEndpoint)
 		{
 			RqUID = Guid.NewGuid();
 			MaxDialogHistorySize = maxDialogHistorySize;

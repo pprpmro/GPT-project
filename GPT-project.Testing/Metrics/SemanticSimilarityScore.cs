@@ -16,8 +16,6 @@ namespace GPTProject.Testing.Metrics
 		{
 			var generatedTextRequest = new VectorizerRequest()
 			{
-				Key = "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",
-				Url = "https://api.openai.com/v1/embeddings",
 				Encoding_format = "float",
 				Model = "text-embedding-3-small",
 			};
@@ -25,8 +23,6 @@ namespace GPTProject.Testing.Metrics
 
 			var referenceTextRequest = new VectorizerRequest()
 			{
-				Key = "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",
-				Url = "https://api.openai.com/v1/embeddings",
 				Encoding_format = "float",
 				Model = "text-embedding-3-small",
 			};

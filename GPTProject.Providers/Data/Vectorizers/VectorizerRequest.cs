@@ -5,12 +5,6 @@ namespace GPTProject.Providers.Data.Vectorizers
 {
 	public class VectorizerRequest : IVectorizerRequest
 	{
-		[JsonIgnore]
-		public string Key { get; set; }
-
-		[JsonIgnore]
-		public string Url { get; set; }
-
 		[JsonPropertyName("input")]
 		public string[] Input { get; set; } = Array.Empty<string>();
 

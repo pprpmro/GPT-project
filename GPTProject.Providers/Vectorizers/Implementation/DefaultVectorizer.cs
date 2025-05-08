@@ -2,6 +2,7 @@
 using GPTProject.Providers.Vectorizers.Interfaces;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
+using static GPTProject.Providers.Common.Configurations;
 
 namespace GPTProject.Providers.Vectorizers.Implementation
 {
@@ -10,9 +11,9 @@ namespace GPTProject.Providers.Vectorizers.Implementation
 		public async Task<VectorizerResponse> GetEmbeddingAsync(VectorizerRequest request)
 		{
 			var httpClient = new HttpClient();
-			httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {request.Key}");
+			httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {ChatGPT.ApiKey}");
 
-			var response = await httpClient.PostAsJsonAsync(request.Url, request);
+			var response = await httpClient.PostAsJsonAsync(ChatGPT.EmbeddingEndpoint, request);
 
 			if (!response.IsSuccessStatusCode)
 			{
