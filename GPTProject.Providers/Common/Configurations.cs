@@ -84,5 +84,17 @@
 				public static int GigaLength = 4096;
 			}
 		}
+
+		public static class DeepSeek
+		{
+			public static string ApiKey => EnvironmentLoader.GetEnvironmentVariable("DEEPSEEK_API_KEY");
+
+			public static string DialogCompletionsEndpoint = "https://api.deepseek.com/chat/completions";
+			public static class DialogModels
+			{
+				public static string Default = "deepseek-chat";
+				public static string Reasoner = "deepseek-reasoner";
+			}
+		}
 	}
 }

@@ -6,6 +6,9 @@
 		"# ChatGPT" + Environment.NewLine +
 		"CHATGPT_API_KEY=PutYourKeyHere" + Environment.NewLine +
 		"" + Environment.NewLine +
+		"# DeepSeek" + Environment.NewLine +
+		"DEEPSEEK_API_KEY=PutYourKeyHere" + Environment.NewLine +
+		"" + Environment.NewLine +
 		"# YandexGPT" + Environment.NewLine +
 		"YANDEXGPT_API_KEY=PutYourKeyHere" + Environment.NewLine +
 		"YANDEXGPT_CATALOG_ID=PutYourKeyHere" + Environment.NewLine +
