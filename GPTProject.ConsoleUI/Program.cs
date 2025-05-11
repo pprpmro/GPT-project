@@ -67,7 +67,7 @@ namespace GPTProject.ConsoleUI
 			//}
 
 
-			/*var agent = CreateAgent();
+			var agent = CreateAgent();
 			try
 			{
 				await agent.Run(() => Task.FromResult(GetUserMessage()));
@@ -75,7 +75,7 @@ namespace GPTProject.ConsoleUI
 			catch (Exception ex)
 			{
 				logger.Log($"Exception: {ex.Message}", LogLevel.Error);
-			}*/
+			}
 
 			var request = new VectorizerRequest()
 			{

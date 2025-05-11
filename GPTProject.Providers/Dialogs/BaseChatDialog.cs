@@ -1,6 +1,8 @@
 ﻿using System.Net.Http.Json;
 using GPTProject.Providers.Dialogs.Interfaces;
 using GPTProject.Providers.Data;
+using System.Text;
+using System.Text.Json;
 
 namespace GPTProject.Providers.Dialogs
 {
@@ -93,11 +95,15 @@ namespace GPTProject.Providers.Dialogs
 			}
 		}
 
-		public virtual async Task<string> SendMessage(string message, bool rememberMessage = true)
+		public virtual async Task<string> SendMessage(
+			string message,
+			bool stream,
+			bool rememberMessage = true,
+			Action<string>? onStreamedData = null)
 		{
-			if (message.Length < MinimalContentLength)
+			if(string.IsNullOrEmpty(message))
 			{
-				throw new ArgumentException("Message length is less than minimum");
+				throw new ArgumentException("Empty message");
 			}
 
 			messagesHistory.Add(new TMessage()
@@ -109,32 +115,22 @@ namespace GPTProject.Providers.Dialogs
 			var requestData = new TRequest()
 			{
 				Model = modelName,
-				Messages = messagesHistory
+				Messages = messagesHistory,
+				Stream = stream,
 			};
 			TotalSendedCharacterCount += GetHistoryCharacterCount();
 
-			using var response = await httpClient.PostAsJsonAsync(completionsEndpoint, requestData);
 
-			if (!response.IsSuccessStatusCode)
-			{
-				throw new Exception($"{(int)response.StatusCode} {response.StatusCode}");
-			}
-
-			ResponseData? responseData = await response.Content.ReadFromJsonAsync<ResponseData>();
-			var choices = responseData?.Choices ?? new List<Choice>();
-			if (choices.Count == 0)
-			{
-				throw new Exception("No choices were returned by the API");
-			}
-
-			var choice = choices[0].Message.Content.Trim();
+			string assistantResponse = stream
+				? await SendStreamedResponse(requestData, onStreamedData)
+				: await SendDirectResponse(requestData);
 
 			if (rememberMessage)
 			{
 				messagesHistory.Add(new Message()
 				{
 					Role = DialogRole.Assistant,
-					Content = choice
+					Content = assistantResponse
 				});
 			}
 			else
@@ -142,14 +138,8 @@ namespace GPTProject.Providers.Dialogs
 				messagesHistory.RemoveAt(messagesHistory.Count - 1);
 			}
 
-			if (messagesHistory.Count > MaxDialogHistorySize)
-			{
-				HistoryOverflowNotify?.Invoke(messagesHistory);
-				int removeCount = messagesHistory.Count - MaxDialogHistorySize;
-				messagesHistory.RemoveRange(1, removeCount);
-			}
-
-			return choice;
+			EnsureHistorySizeLimit();
+			return assistantResponse;
 		}
 
 		public async Task<string> SendMessage()
@@ -191,6 +181,92 @@ namespace GPTProject.Providers.Dialogs
 		public List<IMessage> GetDialog()
 		{
 			return messagesHistory;
+		}
+
+		private async Task<string> SendStreamedResponse(TRequest requestData, Action<string>? onStreamedData)
+		{
+			using var request = new HttpRequestMessage(HttpMethod.Post, completionsEndpoint)
+			{
+				Content = JsonContent.Create(requestData)
+			};
+
+			using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+			response.EnsureSuccessStatusCode();
+			return await ReadStreamedResponse(response, onStreamedData);
+		}
+		private async Task<string> ReadStreamedResponse(HttpResponseMessage response, Action<string>? onStreamedData = null)
+		{
+			var resultBuilder = new StringBuilder();
+			onStreamedData ??= _ => {};
+
+			using var stream = await response.Content.ReadAsStreamAsync();
+			using var reader = new StreamReader(stream);
+
+			while (!reader.EndOfStream)
+			{
+				var line = await reader.ReadLineAsync();
+				if (string.IsNullOrWhiteSpace(line))
+				{
+					continue;
+				}
+
+				if (line.StartsWith("data:") && line.Length >= 5)
+				{
+					if (line[5..].Trim() == "[DONE]")
+					{
+						break;
+					}
+				}
+
+				try
+				{
+					var json = JsonDocument.Parse(line);
+					var contentText = json.RootElement
+						.GetProperty("choices")[0]
+						.GetProperty("delta")
+						.GetProperty("content")
+						.GetString() ?? string.Empty;
+
+					resultBuilder.Append(contentText);
+					onStreamedData(contentText);
+				}
+				catch (Exception ex)
+				{
+					throw new Exception($"Stream exeption: {ex.Message}");
+				}
+			}
+
+			return resultBuilder.ToString();
+		}
+
+
+		private async Task<string> SendDirectResponse(TRequest requestData)
+		{
+			using var response = await httpClient.PostAsJsonAsync(completionsEndpoint, requestData);
+			response.EnsureSuccessStatusCode();
+			return await ReadDirectResponse(response);
+		}
+		private async Task<string> ReadDirectResponse(HttpResponseMessage response)
+		{
+			var responseData = await response.Content.ReadFromJsonAsync<ResponseData>();
+			if (responseData?.Choices == null || responseData.Choices.Count == 0)
+			{
+				throw new Exception("No choices were returned by the API");
+			}
+
+			return responseData.Choices[0].Message.Content?.Trim() ?? string.Empty;
+		}
+
+		private void EnsureHistorySizeLimit()
+		{
+			if (messagesHistory.Count <= MaxDialogHistorySize)
+			{
+				return;
+			}
+
+			HistoryOverflowNotify?.Invoke(messagesHistory);
+			int removeCount = messagesHistory.Count - MaxDialogHistorySize;
+			messagesHistory.RemoveRange(1, removeCount);
 		}
 	}
 }

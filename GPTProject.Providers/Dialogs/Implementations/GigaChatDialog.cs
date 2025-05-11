@@ -57,7 +57,7 @@ namespace GPTProject.Providers.Dialogs.Implementations
 			}
 		}
 
-		public override async Task<string> SendMessage(string content, bool rememberMessage = true)
+		public override async Task<string> SendMessage(string content, bool stream = false, bool rememberMessage = true, Action<string>? onStreamedData = null)
 		{
 			messagesHistory[0].Role = DialogRole.System;
 			if (content.Length < minimalContentLength)
@@ -71,7 +71,7 @@ namespace GPTProject.Providers.Dialogs.Implementations
 				accessData = newAccessData;
 			}
 
-			return await base.SendMessage(content, rememberMessage);
+			return await base.SendMessage(content, stream, rememberMessage, onStreamedData);
 		}
 
 		private class GigaChatAccessData

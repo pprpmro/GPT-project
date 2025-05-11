@@ -2,7 +2,7 @@
 {
 	public interface IChatDialog
 	{
-		Task<string> SendMessage(string message, bool rememberMessage = true);
+		Task<string> SendMessage(string message, bool stream = true, bool rememberMessage = true, Action<string>? onStreamedData = null);
 		Task<string> SendMessage();
 		void ClearDialog(bool clearSystemPrompt = true);
 		void ClearDialog(bool clearSystemPrompt = false, int? lastNMessages = null);

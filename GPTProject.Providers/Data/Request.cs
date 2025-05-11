@@ -16,5 +16,8 @@ namespace GPTProject.Providers.Data
 
 		[JsonPropertyName("temperature")]
 		public double Temperature { get; set; } = 0.7;
+
+		[JsonPropertyName("stream")]
+		public bool Stream { get; set; } = false;
 	}
 }
