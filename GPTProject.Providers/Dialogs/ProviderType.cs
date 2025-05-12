@@ -4,6 +4,8 @@
 	{
 		ChatGPT,
 		GigaChat,
-		YandexGPT
+		YandexGPT,
+		DeepSeek,
+		DefaultDialog
 	}
 }

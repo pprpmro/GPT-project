@@ -8,6 +8,7 @@ using GPTProject.Providers.Vectorizers.Implementation;
 using GPTProject.Providers.Dialogs.Implementations;
 using GPTProject.Providers.Data.Vectorizers;
 using GPTProject.Core.ChatBot.LLMMemory;
+using GPTProject.Common;
 
 namespace GPTProject.ConsoleUI
 {
@@ -67,7 +68,7 @@ namespace GPTProject.ConsoleUI
 			//}
 
 
-			var agent = CreateAgent();
+			/*var agent = CreateAgent();
 			try
 			{
 				await agent.Run(() => Task.FromResult(GetUserMessage()));
@@ -75,16 +76,21 @@ namespace GPTProject.ConsoleUI
 			catch (Exception ex)
 			{
 				logger.Log($"Exception: {ex.Message}", LogLevel.Error);
-			}
+			}*/
 
 			var request = new VectorizerRequest()
 			{
 				Encoding_format = "float",
 				Model = "text-embedding-3-small",
 			};
-
-			var dialogue = new DialogueAgent(new ChatGPTDialog(), "cat", request, "Представь что ты котик и веди себя соответствующе");
-			await dialogue.Run(() => Task.FromResult(GetUserMessage()), Console.WriteLine);
+			var providerConfig = new Dictionary<DialogType, ProviderType>
+			{
+				{ DialogType.User, ProviderType.ChatGPT },
+				{ DialogType.Saving, ProviderType.ChatGPT },
+				{ DialogType.Restoring, ProviderType.ChatGPT }
+			};
+			var dialogue = new DialogueAgent(providerConfig, "cat", request, "Представь что ты котик и веди себя соответствующе");
+			await dialogue.Run(() => Task.FromResult(GetUserMessage()), Console.Write);
 		}
 
 		private static Agent CreateAgent()
@@ -115,7 +121,7 @@ namespace GPTProject.ConsoleUI
 		private static string GetUserMessage()
 		{
 			Console.ForegroundColor = ConsoleColor.Yellow;
-			Console.Write("Введите сообщение: ");
+			Console.Write("\nВведите сообщение: ");
 			string? userMessage;
 			while (string.IsNullOrWhiteSpace(userMessage = Console.ReadLine()))
 			{

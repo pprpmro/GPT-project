@@ -1,4 +1,4 @@
-﻿namespace GPTProject.Core.ChatBot
+﻿namespace GPTProject.Common
 {
     public enum DialogState
 	{

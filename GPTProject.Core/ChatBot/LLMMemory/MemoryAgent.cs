@@ -3,17 +3,22 @@ using GPTProject.Providers.Dialogs.Interfaces;
 using System.Text.Json;
 using QdrantExpansion.Models;
 using QdrantExpansion.Services;
+using GPTProject.Common;
+using GPTProject.Providers.Dialogs;
+using GPTProject.Common.Utils;
 
 namespace GPTProject.Core.ChatBot.LLMMemory
 {
 	public class MemoryAgent
 	{
-		private readonly IChatDialog _provider;
+		private readonly IChatDialog _providerSaving;
+		private readonly IChatDialog _providerRestoring;
 		private readonly DefaultQdrantService _qdrantService;
 		private readonly JsonSerializerOptions _options;
 
-		public MemoryAgent(IChatDialog provider, string collectionName, VectorizerRequest request) {
-			_provider = provider;
+		public MemoryAgent(Dictionary<DialogType, ProviderType> providerTypes, string collectionName, VectorizerRequest request) {
+			_providerSaving = DialogSelector.GetDialog(providerTypes, DialogType.Saving);
+			_providerRestoring = DialogSelector.GetDialog(providerTypes, DialogType.Restoring);
 			_qdrantService = new DefaultQdrantService(collectionName, request);
 			_options = new JsonSerializerOptions
 			{
@@ -23,10 +28,10 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 
 		public async Task Save(List<IMessage> messagesHistory)
 		{
-			_provider.SetCustomDialog(messagesHistory);
-			_provider.UpdateSystemPrompt(PromptManager.GetSavingPrompt());
+			_providerSaving.SetCustomDialog(messagesHistory);
+			_providerSaving.UpdateSystemPrompt(PromptManager.GetSavingPrompt());
 
-			var response = await _provider.SendMessage();
+			var response = await _providerSaving.SendMessage(null, null, false);
 			try
 			{
 				List<Payload> payloads = JsonSerializer.Deserialize<List<Payload>>(response, _options)
@@ -46,9 +51,9 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 
 		public async Task<string> Restore(string message)
 		{
-			_provider.UpdateSystemPrompt(PromptManager.GetRestoringPrompt());
+			_providerRestoring.UpdateSystemPrompt(PromptManager.GetRestoringPrompt());
 
-			var response = await _provider.SendMessage(message);
+			var response = await _providerRestoring.SendMessage(message);
 			try
 			{
 				string[] strings = JsonSerializer.Deserialize<string[]>(response);

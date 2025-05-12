@@ -96,21 +96,19 @@ namespace GPTProject.Providers.Dialogs
 		}
 
 		public virtual async Task<string> SendMessage(
-			string message,
-			bool stream,
-			bool rememberMessage = true,
-			Action<string>? onStreamedData = null)
+			string? message,
+			Action<string>? onStreamedData = null,
+			bool stream = true,
+			bool rememberMessage = true)
 		{
-			if(string.IsNullOrEmpty(message))
+			if(!string.IsNullOrEmpty(message))
 			{
-				throw new ArgumentException("Empty message");
+				messagesHistory.Add(new TMessage()
+				{
+					Role = DialogRole.User,
+					Content = message
+				});
 			}
-
-			messagesHistory.Add(new TMessage()
-			{
-				Role = DialogRole.User,
-				Content = message
-			});
 
 			var requestData = new TRequest()
 			{
@@ -140,32 +138,6 @@ namespace GPTProject.Providers.Dialogs
 
 			EnsureHistorySizeLimit();
 			return assistantResponse;
-		}
-
-		public async Task<string> SendMessage()
-		{
-			var requestData = new TRequest()
-			{
-				Model = modelName,
-				Messages = messagesHistory
-			};
-
-			using var response = await httpClient.PostAsJsonAsync(completionsEndpoint, requestData);
-
-			if (!response.IsSuccessStatusCode)
-			{
-				throw new Exception($"{(int)response.StatusCode} {response.StatusCode}");
-			}
-
-			ResponseData? responseData = await response.Content.ReadFromJsonAsync<ResponseData>();
-			var choices = responseData?.Choices ?? new List<Choice>();
-			if (choices.Count == 0)
-			{
-				throw new Exception("No choices were returned by the API");
-			}
-
-			var choice = choices[0].Message.Content.Trim();
-			return choice;
 		}
 
 		public int GetHistoryCharacterCount()
@@ -212,7 +184,8 @@ namespace GPTProject.Providers.Dialogs
 
 				if (line.StartsWith("data:") && line.Length >= 5)
 				{
-					if (line[5..].Trim() == "[DONE]")
+					line = line[5..].Trim();
+					if (line == "[DONE]")
 					{
 						break;
 					}
@@ -221,14 +194,17 @@ namespace GPTProject.Providers.Dialogs
 				try
 				{
 					var json = JsonDocument.Parse(line);
-					var contentText = json.RootElement
+					var responseDelta = json.RootElement
 						.GetProperty("choices")[0]
-						.GetProperty("delta")
-						.GetProperty("content")
-						.GetString() ?? string.Empty;
+						.GetProperty("delta");
 
-					resultBuilder.Append(contentText);
-					onStreamedData(contentText);
+					if (responseDelta.TryGetProperty("content", out var content))
+					{
+						
+						var contentText = content.GetString() ?? string.Empty;
+						resultBuilder.Append(contentText);
+						onStreamedData(contentText);
+					}
 				}
 				catch (Exception ex)
 				{

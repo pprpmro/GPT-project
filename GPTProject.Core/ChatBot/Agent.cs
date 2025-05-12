@@ -3,8 +3,8 @@ using GPTProject.Common.Logging;
 using GPTProject.Common.Utils;
 using System.Text.RegularExpressions;
 using GPTProject.Providers.Dialogs.Interfaces;
-using GPTProject.Providers.Dialogs.Implementations;
 using GPTProject.Providers.Dialogs;
+using GPTProject.Common;
 
 namespace GPTProject.Core.ChatBot
 {
@@ -47,26 +47,17 @@ namespace GPTProject.Core.ChatBot
 			this.logger = logger;
 			this.subjectArea = subjectArea;
 
-			foreach (DialogType dialogType in Enum.GetValues(typeof(DialogType)))
-			{
-				if (!providerTypes.TryGetValue(dialogType, out var providerType))
-				{
-					throw new ArgumentException($"Поставщик для {dialogType} не задан в providerTypes.");
-				}
-				dialogs[dialogType] = GetChatDialogProvider(providerType);
+			var requiredDialogTypes = new List<DialogType> { DialogType.User, DialogType.Classification, DialogType.Cleansing, DialogType.QuestionSeparator, DialogType.SmallTalk };
+
+			foreach (DialogType dialogType in requiredDialogTypes)
+			{ 
+				dialogs[dialogType] = DialogSelector.GetDialog(providerTypes, dialogType);
 			}
 			availableTypesAndFileNames = GetAvailableTypesAndFileNames(knowledgeBaseFiles);
 
 			InitializeSystemPrompts();
 			currentState = DialogState.Waiting;
 		}
-
-		private IChatDialog GetChatDialogProvider(ProviderType type) => type switch
-		{
-			ProviderType.ChatGPT => new ChatGPTDialog(),
-			ProviderType.GigaChat => new GigaChatDialog(),
-			_ => throw new NotImplementedException()
-		};
 
 		private void InitializeSystemPrompts()
 		{
@@ -430,7 +421,7 @@ namespace GPTProject.Core.ChatBot
 		}
 		private async Task<SmallTalkResponse> ProcessSmallTalk(string userMessage)
 		{
-			var gptResponse = await dialogs[DialogType.SmallTalk].SendMessage(userMessage, false);
+			var gptResponse = await dialogs[DialogType.SmallTalk].SendMessage(userMessage, null, false);
 
 			try
 			{

@@ -1,4 +1,4 @@
-﻿namespace GPTProject.Core.ChatBot
+﻿namespace GPTProject.Common
 {
     public enum DialogType
     {
@@ -6,6 +6,9 @@
         Classification,
         Cleansing,
         QuestionSeparator,
-        SmallTalk
+        SmallTalk,
+        Saving,
+        Restoring,
+        DBCleaning
     }
 }

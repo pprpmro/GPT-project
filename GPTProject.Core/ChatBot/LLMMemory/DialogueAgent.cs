@@ -1,4 +1,7 @@
-﻿using GPTProject.Providers.Data.Vectorizers;
+﻿using GPTProject.Common;
+using GPTProject.Common.Utils;
+using GPTProject.Providers.Data.Vectorizers;
+using GPTProject.Providers.Dialogs;
 using GPTProject.Providers.Dialogs.Implementations;
 using GPTProject.Providers.Dialogs.Interfaces;
 
@@ -10,12 +13,12 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 		private readonly string _collectionName;
 		private readonly MemoryAgent _memoryAgent;
 
-		private string _memories;
+		private string? _memories;
 
-		public DialogueAgent(IChatDialog provider, string collectionName, VectorizerRequest request, string SystemPrompt = "") {
-			_provider = provider;
+		public DialogueAgent(Dictionary<DialogType, ProviderType> providerTypes, string collectionName, VectorizerRequest request, string SystemPrompt = "") {
+			_provider = DialogSelector.GetDialog(providerTypes, DialogType.User);
 			_collectionName = collectionName;
-			_memoryAgent = new MemoryAgent(new ChatGPTDialog(), _collectionName, request);
+			_memoryAgent = new MemoryAgent(providerTypes, _collectionName, request);
 
 			_provider.SetOverflowHandler(OverflowHandlerAsync);
 			if (SystemPrompt != "") _provider.UpdateSystemPrompt(SystemPrompt);
@@ -30,13 +33,23 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 
 				_memories = await _memoryAgent.Restore(userMessage);
 
-				ReturnFunction(await _provider.SendMessage(PromptManager.GetThisIsWhatYouRememberPrompt(_memories, userMessage)));
+				await _provider.SendMessage(PromptManager.GetThisIsWhatYouRememberPrompt(_memories, userMessage), ReturnFunction);
 			}
 		}
 
 		private void OverflowHandlerAsync(List<IMessage> messagesHistory)
 		{
-			_memoryAgent.Save(_provider.GetDialog());
+			Task.Run(async () =>
+			{
+				try
+				{
+					await _memoryAgent.Save(_provider.GetDialog());
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine(ex.Message);
+				}
+			});
 		}
 
 		private async Task<bool> CheckCommand(string message)
@@ -44,7 +57,17 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 			switch (message)
 			{
 				case "/save":
-					await _memoryAgent.Save(_provider.GetDialog());
+					_ = Task.Run(async () =>
+					{
+						try
+						{
+							await _memoryAgent.Save(_provider.GetDialog());
+						}
+						catch (Exception ex)
+						{
+							Console.WriteLine(ex.Message);
+						}
+					});
 					return true;
 
 				default:
