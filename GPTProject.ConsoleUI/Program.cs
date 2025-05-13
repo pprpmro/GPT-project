@@ -15,6 +15,7 @@ namespace GPTProject.ConsoleUI
 	public class Program
 	{
 		static readonly ILogger logger = new ConsoleLogger();
+		private static readonly ManualResetEventSlim shutdownEvent = new(false);
 
 		private static async Task RunClassicChatBot(IChatDialog chatDialog)
 		{
@@ -90,7 +91,28 @@ namespace GPTProject.ConsoleUI
 				{ DialogType.Restoring, ProviderType.ChatGPT }
 			};
 			var dialogue = new DialogueAgent(providerConfig, "cat", request, "Представь что ты котик и веди себя соответствующе");
+			AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
+			{
+				Console.WriteLine("\nProcessExit: Приложение закрывается...");
+				SaveAsync(dialogue).Wait();
+			};
 			await dialogue.Run(() => Task.FromResult(GetUserMessage()), Console.Write);
+		}
+
+		static async Task SaveAsync(DialogueAgent agent)
+		{
+			try
+			{
+				await agent.Save();
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Ошибка при сохранении: {ex.Message}");
+			}
+			finally
+			{
+				shutdownEvent.Set(); // Сигнализируем, что завершение сохранения завершено
+			}
 		}
 
 		private static Agent CreateAgent()

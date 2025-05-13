@@ -37,13 +37,18 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 			}
 		}
 
+		public async Task Save()
+		{
+			await _memoryAgent.Save(_provider.GetDialog());
+		}
+
 		private void OverflowHandlerAsync(List<IMessage> messagesHistory)
 		{
 			Task.Run(async () =>
 			{
 				try
 				{
-					await _memoryAgent.Save(_provider.GetDialog());
+					await Save();
 				}
 				catch (Exception ex)
 				{
@@ -61,7 +66,7 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 					{
 						try
 						{
-							await _memoryAgent.Save(_provider.GetDialog());
+							await Save();
 						}
 						catch (Exception ex)
 						{
