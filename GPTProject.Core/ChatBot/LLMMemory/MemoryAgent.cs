@@ -59,6 +59,10 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 				string[] strings = JsonSerializer.Deserialize<string[]>(response);
 				var searchResult = await _qdrantService.FindClosestForManyAsync(strings, 0.4f);
 
+				if (searchResult is null)
+				{
+					throw new Exception("Database error");
+				}
 				var results = new List<string>();
 				foreach (var item in searchResult)
 				{
@@ -68,7 +72,7 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine("Error", ex.Message);
+				Console.WriteLine(ex.Message);
 			}
 
 			return string.Empty;
