@@ -12,7 +12,7 @@ namespace GPTProject.Providers.Dialogs.Implementations
 		private Guid RqUID;
 
 		public GigaChatDialog(int maxDialogHistorySize = 50)
-			: base(DialogModels.Pro, DialogEndpoint)
+			: base(DialogModels.Lite, DialogEndpoint)
 		{
 			RqUID = Guid.NewGuid();
 			MaxDialogHistorySize = maxDialogHistorySize;
@@ -60,11 +60,6 @@ namespace GPTProject.Providers.Dialogs.Implementations
 		public override async Task<string> SendMessage(string content, Action<string>? onStreamedData = null, bool stream = true, bool rememberMessage = true)
 		{
 			messagesHistory[0].Role = DialogRole.System;
-			if (content.Length < minimalContentLength)
-			{
-				throw new ArgumentException("Message length is less than minimum");
-			}
-
 			if (accessData == null || accessData.isExpired)
 			{
 				var newAccessData = await GetAccessData();

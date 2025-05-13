@@ -85,7 +85,7 @@ namespace GPTProject.Providers.Dialogs
 			if (clearDialog)
 				messagesHistory.Clear();
 
-			if (messagesHistory.Count > 0 && messagesHistory[0].Role == DialogRole.Developer)
+			if (messagesHistory.Count > 0 && (messagesHistory[0].Role == DialogRole.Developer || messagesHistory[0].Role == DialogRole.System))
 			{
 				messagesHistory[0].Content = message;
 			}
