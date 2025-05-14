@@ -70,8 +70,16 @@
 			public static class DialogModels
 			{
 				public static string Pro = "GigaChat-Pro";
+				public static string Pro_preview = "GigaChat-Pro-preview";
+				public static string Pro2 = "GigaChat-2-Pro";
+
 				public static string Max = "GigaChat-Max";
-				public static string Lite = "GigaChat:latest";
+				public static string Max_preview = "GigaChat-Max-preview";
+				public static string Max2 = "GigaChat-2-Max";
+
+				public static string Lite = "GigaChat";
+				public static string Lite_preview = "GigaChat-preview";
+				public static string Lite2 = "GigaChat-2";
 			}
 
 			public static string EmbeddingEndpoint = "https://gigachat.devices.sberbank.ru/api/v1/embeddings";
