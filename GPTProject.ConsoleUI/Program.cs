@@ -1,7 +1,6 @@
 ﻿using GPTProject.Core.ChatBot;
 using GPTProject.Common.Logging;
 using GPTProject.Providers.Dialogs.Interfaces;
-using GPTProject.Providers.Dialogs;
 using GPTProject.Testing.Metrics;
 using GPTProject.Testing.Evaluation;
 using GPTProject.Providers.Vectorizers.Implementation;
@@ -9,6 +8,7 @@ using GPTProject.Providers.Dialogs.Implementations;
 using GPTProject.Providers.Data.Vectorizers;
 using GPTProject.Core.ChatBot.LLMMemory;
 using GPTProject.Common;
+using GPTProject.Providers.Dialogs.Enumerations;
 
 namespace GPTProject.ConsoleUI
 {

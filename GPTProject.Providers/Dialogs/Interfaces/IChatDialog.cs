@@ -1,4 +1,6 @@
-﻿namespace GPTProject.Providers.Dialogs.Interfaces
+﻿using GPTProject.Providers.Data.Dialogs;
+
+namespace GPTProject.Providers.Dialogs.Interfaces
 {
 	public interface IChatDialog
 	{

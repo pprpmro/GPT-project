@@ -1,8 +1,14 @@
 ﻿using System.Text.Json.Serialization;
-using GPTProject.Providers.Dialogs.Interfaces;
 
-namespace GPTProject.Providers.Data
+namespace GPTProject.Providers.Data.Dialogs
 {
+	public interface IMessage
+	{
+		string Role { get; set; }
+
+		string Content { get; set; }
+	}
+
 	public class Message : IMessage
 	{
 		[JsonPropertyName("role")]

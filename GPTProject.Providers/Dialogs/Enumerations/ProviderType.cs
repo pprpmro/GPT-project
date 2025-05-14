@@ -1,4 +1,4 @@
-﻿namespace GPTProject.Providers.Dialogs
+﻿namespace GPTProject.Providers.Dialogs.Enumerations
 {
 	public enum ProviderType
 	{

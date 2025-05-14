@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace GPTProject.Providers.Data
+namespace GPTProject.Providers.Data.Dialogs
 {
 	public class Choice
 	{

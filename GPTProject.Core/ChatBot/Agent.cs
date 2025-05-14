@@ -3,8 +3,8 @@ using GPTProject.Common.Logging;
 using GPTProject.Common.Utils;
 using System.Text.RegularExpressions;
 using GPTProject.Providers.Dialogs.Interfaces;
-using GPTProject.Providers.Dialogs;
 using GPTProject.Common;
+using GPTProject.Providers.Dialogs.Enumerations;
 
 namespace GPTProject.Core.ChatBot
 {

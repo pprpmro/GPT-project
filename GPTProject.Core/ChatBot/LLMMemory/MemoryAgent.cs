@@ -4,8 +4,9 @@ using System.Text.Json;
 using QdrantExpansion.Models;
 using QdrantExpansion.Services;
 using GPTProject.Common;
-using GPTProject.Providers.Dialogs;
 using GPTProject.Common.Utils;
+using GPTProject.Providers.Dialogs.Enumerations;
+using GPTProject.Providers.Data.Dialogs;
 
 namespace GPTProject.Core.ChatBot.LLMMemory
 {

@@ -1,10 +1,10 @@
 ﻿using System.Net.Http.Json;
 using GPTProject.Providers.Dialogs.Interfaces;
-using GPTProject.Providers.Data;
 using System.Text;
 using System.Text.Json;
 using GPTProject.Providers.Dialogs.Implementations;
 using System.Data;
+using GPTProject.Providers.Data.Dialogs;
 
 namespace GPTProject.Providers.Dialogs
 {
@@ -14,7 +14,6 @@ namespace GPTProject.Providers.Dialogs
 	{
 		protected List<IMessage> messagesHistory;
 		protected HttpClient httpClient;
-		protected const int MinimalContentLength = 1;
 
 		protected readonly string modelName;
 		protected readonly string completionsEndpoint;

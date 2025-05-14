@@ -1,4 +1,4 @@
-﻿using GPTProject.Providers.Dialogs;
+﻿using GPTProject.Providers.Dialogs.Enumerations;
 using GPTProject.Providers.Dialogs.Implementations;
 using GPTProject.Providers.Dialogs.Interfaces;
 

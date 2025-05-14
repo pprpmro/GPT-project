@@ -1,7 +1,8 @@
 ﻿using GPTProject.Common;
 using GPTProject.Common.Utils;
+using GPTProject.Providers.Data.Dialogs;
 using GPTProject.Providers.Data.Vectorizers;
-using GPTProject.Providers.Dialogs;
+using GPTProject.Providers.Dialogs.Enumerations;
 using GPTProject.Providers.Dialogs.Implementations;
 using GPTProject.Providers.Dialogs.Interfaces;
 

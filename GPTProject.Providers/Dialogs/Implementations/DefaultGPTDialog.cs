@@ -1,4 +1,4 @@
-﻿using GPTProject.Providers.Data;
+﻿using GPTProject.Providers.Data.Dialogs;
 
 namespace GPTProject.Providers.Dialogs.Implementations
 {

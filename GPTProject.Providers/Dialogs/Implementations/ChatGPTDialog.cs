@@ -1,4 +1,4 @@
-﻿using GPTProject.Providers.Data;
+﻿using GPTProject.Providers.Data.Dialogs;
 using static GPTProject.Providers.Common.Configurations.ChatGPT;
 
 namespace GPTProject.Providers.Dialogs.Implementations

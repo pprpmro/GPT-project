@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using GPTProject.Providers.Data;
+using GPTProject.Providers.Data.Dialogs;
 using static GPTProject.Providers.Common.Configurations.GigaChat;
 
 namespace GPTProject.Providers.Dialogs.Implementations

@@ -1,8 +1,16 @@
 ﻿using System.Text.Json.Serialization;
-using GPTProject.Providers.Dialogs.Interfaces;
 
-namespace GPTProject.Providers.Data
+namespace GPTProject.Providers.Data.Dialogs
 {
+	public interface IRequest
+	{
+		int AnswerCount { get; set; }
+		List<IMessage> Messages { get; set; }
+		string Model { get; set; }
+		double Temperature { get; set; }
+		bool Stream {  get; set; }
+	}
+
 	public class Request : IRequest
 	{
 		[JsonPropertyName("model")]
