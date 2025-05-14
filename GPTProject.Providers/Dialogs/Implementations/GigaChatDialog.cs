@@ -13,7 +13,7 @@ namespace GPTProject.Providers.Dialogs.Implementations
 		public GigaChatDialog() : this(10000) { }
 
 		public GigaChatDialog(int maxTokenHistorySize = 10000)
-			: base(DialogModels.Lite, DialogEndpoint)
+			: base(DialogModels.Lite2, DialogEndpoint)
 		{
 			RqUID = Guid.NewGuid();
 			MaxTokenHistorySize = maxTokenHistorySize;

@@ -137,7 +137,7 @@ namespace GPTProject.Core.ChatBot
 					Console.WriteLine(GetOutputMessage());
 				}
 			}
-			logger.Log($"Потрачено на диалог: {TotalSendedTokenCount}", LogLevel.Error);
+			logger.Log($"Потрачено на диалог: {TotalSendedTokenCount}", LogLevel.Danger);
 		}
 
 		private async Task<bool> Process()
