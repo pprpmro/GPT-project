@@ -8,7 +8,6 @@ namespace GPTProject.Providers.Dialogs.Implementations
 	public class GigaChatDialog : BaseChatDialog<Message, Request>
 	{
 		private GigaChatAccessData? accessData;
-		private const int minimalContentLength = 1;
 		private Guid RqUID;
 
 		public GigaChatDialog(int maxDialogHistorySize = 50)
@@ -57,9 +56,8 @@ namespace GPTProject.Providers.Dialogs.Implementations
 			}
 		}
 
-		public override async Task<string> SendMessage(string content, Action<string>? onStreamedData = null, bool stream = true, bool rememberMessage = true)
+		public override async Task<string> SendMessage(string? content, Action<string>? onStreamedData = null, bool stream = true, bool rememberMessage = true)
 		{
-			messagesHistory[0].Role = DialogRole.System;
 			if (accessData == null || accessData.isExpired)
 			{
 				var newAccessData = await GetAccessData();

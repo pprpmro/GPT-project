@@ -3,6 +3,8 @@ using GPTProject.Providers.Dialogs.Interfaces;
 using GPTProject.Providers.Data;
 using System.Text;
 using System.Text.Json;
+using GPTProject.Providers.Dialogs.Implementations;
+using System.Data;
 
 namespace GPTProject.Providers.Dialogs
 {
@@ -91,7 +93,13 @@ namespace GPTProject.Providers.Dialogs
 			}
 			else
 			{
-				messagesHistory.Insert(0, new TMessage { Role = DialogRole.Developer, Content = message });
+				var role = this switch
+				{
+					ChatGPTDialog => DialogRole.Developer,
+					_ => DialogRole.System
+				};
+
+				messagesHistory.Insert(0, new TMessage { Role = role, Content = message });
 			}
 		}
 
