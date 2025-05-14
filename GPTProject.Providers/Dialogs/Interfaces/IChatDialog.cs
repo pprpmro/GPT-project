@@ -11,8 +11,8 @@ namespace GPTProject.Providers.Dialogs.Interfaces
 		void SetOverflowHandler(Action<List<IMessage>> handler);
 		void SetCustomDialog(List<IMessage> customMessagesHistory);
 		List<IMessage> GetDialog();
-		int MaxDialogHistorySize { get; set; }
-		int TotalSendedCharacterCount { get; set; }
+		int MaxTokenHistorySize { get; set; }
+		int SessionTokenUsage { get; }
 
 	}
 }

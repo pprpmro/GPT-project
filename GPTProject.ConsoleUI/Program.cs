@@ -49,7 +49,7 @@ namespace GPTProject.ConsoleUI
 				var response = await chatDialog.SendMessage(userInput);
 				Console.WriteLine($"Бот: {response}");
 			}
-			logger.Log($"Потрачено на диалог: {chatDialog.TotalSendedCharacterCount}", LogLevel.Error);
+			logger.Log($"Потрачено на диалог: {chatDialog.SessionTokenUsage}", LogLevel.Error);
 
 		}
 

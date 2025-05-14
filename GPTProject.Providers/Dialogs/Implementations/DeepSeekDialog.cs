@@ -5,11 +5,13 @@ namespace GPTProject.Providers.Dialogs.Implementations
 {
 	public class DeepSeekDialog : BaseChatDialog<Message, Request>
 	{
-		public DeepSeekDialog(int maxDialogHistorySize = 50)
+		public DeepSeekDialog() : this(10000) { }
+
+		public DeepSeekDialog(int maxTokenHistorySize = 10000)
 			: base(DialogModels.Default, DialogCompletionsEndpoint)
 		{
 			httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {ApiKey}");
-			MaxDialogHistorySize = maxDialogHistorySize;
+			MaxTokenHistorySize = maxTokenHistorySize;
 		}
 	}
 }

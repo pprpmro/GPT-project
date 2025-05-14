@@ -32,7 +32,7 @@ namespace GPTProject.Core.ChatBot
 		{
 			get
 			{
-				return dialogs.Values.Sum(dialog => dialog.TotalSendedCharacterCount);
+				return dialogs.Values.Sum(dialog => dialog.SessionTokenUsage);
 			}
 		}
 

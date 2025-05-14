@@ -10,11 +10,13 @@ namespace GPTProject.Providers.Dialogs.Implementations
 		private GigaChatAccessData? accessData;
 		private Guid RqUID;
 
-		public GigaChatDialog(int maxDialogHistorySize = 50)
+		public GigaChatDialog() : this(10000) { }
+
+		public GigaChatDialog(int maxTokenHistorySize = 10000)
 			: base(DialogModels.Lite, DialogEndpoint)
 		{
 			RqUID = Guid.NewGuid();
-			MaxDialogHistorySize = maxDialogHistorySize;
+			MaxTokenHistorySize = maxTokenHistorySize;
 		}
 
 		private async Task<GigaChatAccessData> GetAccessData()

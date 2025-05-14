@@ -1,10 +1,10 @@
-﻿using System.Net.Http.Json;
-using GPTProject.Providers.Dialogs.Interfaces;
+﻿using System.Data;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using GPTProject.Providers.Dialogs.Implementations;
-using System.Data;
 using GPTProject.Providers.Data.Dialogs;
+using GPTProject.Providers.Dialogs.Implementations;
+using GPTProject.Providers.Dialogs.Interfaces;
 
 namespace GPTProject.Providers.Dialogs
 {
@@ -12,6 +12,8 @@ namespace GPTProject.Providers.Dialogs
 		where TMessage : IMessage, new()
 		where TRequest : IRequest, new()
 	{
+		private readonly ITokenCalculator tokenCalculator = new TokenCalculator();
+
 		protected List<IMessage> messagesHistory;
 		protected HttpClient httpClient;
 
@@ -27,13 +29,14 @@ namespace GPTProject.Providers.Dialogs
 			httpClient = new HttpClient();
 			this.modelName = modelName;
 			this.completionsEndpoint = completionsEndpoint;
-			this.TotalSendedCharacterCount = 0;
 		}
 
-		public int MaxDialogHistorySize { get; set; }
-		public int TotalSendedCharacterCount { get; set; }
+		private int sessionTokenUsage;
+		public int SessionTokenUsage { get { return sessionTokenUsage; } }
 
-		public int CurrentHistorySymbolsCount { get { return messagesHistory.Where(x => x.Content != null).Select(x => x.Content.Length).Sum(); } }
+
+		public int MaxTokenHistorySize { get; set; } = 10000;
+		public int CurrentTokenHistorySize { get { return RecalculateHistoryTokens(); } }
 		public int MessageCount { get { return messagesHistory.Count; } }
 
 		public void SetOverflowHandler(Action<List<IMessage>> handler)
@@ -123,12 +126,17 @@ namespace GPTProject.Providers.Dialogs
 				Messages = messagesHistory,
 				Stream = stream,
 			};
-			TotalSendedCharacterCount += GetHistoryCharacterCount();
 
+			using var request = new HttpRequestMessage(HttpMethod.Post, completionsEndpoint)
+			{
+				Content = JsonContent.Create(requestData)
+			};
+			using var response = await httpClient.SendAsync(request, stream ? HttpCompletionOption.ResponseHeadersRead : HttpCompletionOption.ResponseHeadersRead);
+			response.EnsureSuccessStatusCode();
 
 			string assistantResponse = stream
-				? await SendStreamedResponse(requestData, onStreamedData)
-				: await SendDirectResponse(requestData);
+				? await ReadStreamedResponse(response, onStreamedData)
+				: await ReadDirectResponse(response);
 
 			if (rememberMessage)
 			{
@@ -143,7 +151,8 @@ namespace GPTProject.Providers.Dialogs
 				messagesHistory.RemoveAt(messagesHistory.Count - 1);
 			}
 
-			EnsureHistorySizeLimit();
+			//TODO: Can't get Usage from streamed response
+			EnsureHistorySizeLimit(null);
 			return assistantResponse;
 		}
 
@@ -162,17 +171,6 @@ namespace GPTProject.Providers.Dialogs
 			return messagesHistory;
 		}
 
-		private async Task<string> SendStreamedResponse(TRequest requestData, Action<string>? onStreamedData)
-		{
-			using var request = new HttpRequestMessage(HttpMethod.Post, completionsEndpoint)
-			{
-				Content = JsonContent.Create(requestData)
-			};
-
-			using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-			response.EnsureSuccessStatusCode();
-			return await ReadStreamedResponse(response, onStreamedData);
-		}
 		private async Task<string> ReadStreamedResponse(HttpResponseMessage response, Action<string>? onStreamedData = null)
 		{
 			var resultBuilder = new StringBuilder();
@@ -221,14 +219,6 @@ namespace GPTProject.Providers.Dialogs
 
 			return resultBuilder.ToString();
 		}
-
-
-		private async Task<string> SendDirectResponse(TRequest requestData)
-		{
-			using var response = await httpClient.PostAsJsonAsync(completionsEndpoint, requestData);
-			response.EnsureSuccessStatusCode();
-			return await ReadDirectResponse(response);
-		}
 		private async Task<string> ReadDirectResponse(HttpResponseMessage response)
 		{
 			var responseData = await response.Content.ReadFromJsonAsync<ResponseData>();
@@ -240,16 +230,38 @@ namespace GPTProject.Providers.Dialogs
 			return responseData.Choices[0].Message.Content?.Trim() ?? string.Empty;
 		}
 
-		private void EnsureHistorySizeLimit()
+		private void EnsureHistorySizeLimit(Usage? usage)
 		{
-			if (messagesHistory.Count <= MaxDialogHistorySize)
+			var totalTokens = usage?.TotalTokens ?? CurrentTokenHistorySize;
+			sessionTokenUsage += totalTokens;
+			if (totalTokens <= MaxTokenHistorySize)
 			{
 				return;
 			}
 
 			HistoryOverflowNotify?.Invoke(messagesHistory);
-			int removeCount = messagesHistory.Count - MaxDialogHistorySize;
-			messagesHistory.RemoveRange(1, removeCount);
+			ProcessApiUsageResponse(usage);
+		}
+
+		private void ProcessApiUsageResponse(Usage usage)
+		{
+			if (messagesHistory.Count > 1)
+			{
+				var firstMessageRole = messagesHistory.First().Role;
+				bool hasSystemPrompt = firstMessageRole == DialogRole.System || firstMessageRole == DialogRole.Developer;
+				int targetTokens = SessionTokenUsage / 2;
+				int startIndex = hasSystemPrompt ? 1 : 0;
+
+				while (CurrentTokenHistorySize > targetTokens && messagesHistory.Count > startIndex)
+				{
+					messagesHistory.RemoveAt(startIndex);
+				}
+			}
+		}
+
+		private int RecalculateHistoryTokens()
+		{
+			return messagesHistory.Sum(msg => tokenCalculator.ConvertCharactersToTokens(msg.Content));
 		}
 	}
 }
