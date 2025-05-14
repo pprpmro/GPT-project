@@ -12,7 +12,7 @@ namespace GPTProject.Providers.Dialogs.Implementations
 			{ LanguageType.Russian, 3.0 },
 			//{ LanguageType.Chinese, 1.5 },
 			//{ LanguageType.Japanese, 1.2 },
-			//{ LanguageType.Unknown, 4.0 }
+			{ LanguageType.Unknown, 4.0 }
 		};
 
 		private static readonly double WorstPossibleRatio = tokenRatios.Values.Min();
