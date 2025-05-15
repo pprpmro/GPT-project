@@ -1,7 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using System.Text.Json;
-using GPTProject.Providers.Dialogs.Enumerations;
-using GPTProject.Common;
+﻿using GPTProject.Providers.Dialogs.Enumerations;
 
 namespace GPTProject.Core.Data
 {
@@ -15,16 +12,19 @@ namespace GPTProject.Core.Data
 		public string? Summary { get; set; }
 
 		// Поля для эмбеддинга
-		public ProviderType Provider { get; set; }
+		public required ProviderType Provider { get; set; }
 		public required string EmbedderModel { get; set; }
 
-		public Character(string name, string description, string? example = null, string? plans = null, string? summary = null) 
+		public Character(string name, string description, ProviderType providerType, string embedderModel, string? example = null, string? plans = null, string? summary = null) 
 		{
 			Name = name;
 			Description = description;
 			Example = example;
 			Plans = plans;
 			Summary = summary;
+
+			Provider = providerType;
+			EmbedderModel = embedderModel;
 		}
 	}
 }
