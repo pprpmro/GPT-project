@@ -425,16 +425,14 @@ namespace GPTProject.Core.ChatBot
 
 			try
 			{
-				var questionsMatch = Regex.Match(gptResponse, @"QUESTIONS:\s*(.*)");
-				var smallTalkMatch = Regex.Match(gptResponse, @"SMALL_TALK:\s*(.*)");
+				var responseMatch = Regex.Match(gptResponse, @"RESPONSE:\s*(.*)");
 
-				var questions = questionsMatch.Success ? questionsMatch.Groups[1].Value.Trim() : "EMPTY";
-				var smallTalk = smallTalkMatch.Success ? smallTalkMatch.Groups[1].Value.Trim() : "EMPTY";
+				var questions = responseMatch.Success ? responseMatch.Groups[1].Value.Trim() : "EMPTY";
 
 				return new SmallTalkResponse
 				{
 					Questions = string.IsNullOrEmpty(questions) ? "EMPTY" : questions,
-					SmallTalk = string.IsNullOrEmpty(smallTalk) ? "EMPTY" : smallTalk
+					SmallTalk = !responseMatch.Success ? gptResponse : "EMPTY"
 				};
 			}
 			catch (Exception ex)
