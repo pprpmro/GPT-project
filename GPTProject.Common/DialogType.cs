@@ -9,6 +9,8 @@
         SmallTalk,
         Saving,
         Restoring,
-        DBCleaning
+        DBCleaning,
+        Summary,
+        Planning
     }
 }
