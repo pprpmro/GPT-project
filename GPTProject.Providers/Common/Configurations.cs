@@ -28,8 +28,14 @@
 			public static string EmbeddingEndpoint = "https://api.openai.com/v1/embeddings";
 			public static class EmbeddingModels
 			{
-				public static string Default = "Embeddings";
-				public static int DefaultLength = 512;
+				public static string Small = "text-embedding-3-small";
+				public static int SmallLength = 1536;
+
+				public static string Large = "text-embedding-3-large";
+				public static int LargeLength = 3072;
+
+				public static string Ada = "text-embedding-ada-002";
+				public static int AdaLength = 1536;
 			}
 		}
 
@@ -40,22 +46,22 @@
 			public static string KeyId => EnvironmentLoader.GetEnvironmentVariable("YANDEXGPT_KEY_ID");
 
 			public static string DialogCompletionsEndpoint = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion";
+			public static string OpenAILikeDialogCompletionsEndpoint = "https://llm.api.cloud.yandex.net/v1/chat/completions";
+
 			public static class DialogModels
 			{
-				public static string Lite = "yandexgpt-lite";
+				public static string Lite = $"gpt://{CatalogId}/yandexgpt-lite/latest";
+				public static string Pro = $"gpt://{CatalogId}/yandexgpt/latest";
 			}
 
-			public static string EmbeddingEndpoint = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion";
+			public static string EmbeddingEndpoint = "https://llm.api.cloud.yandex.net/foundationModels/v1/tokenize";
 			public static class EmbeddingModels
 			{
-				public static string Small = "text-embedding-3-small";
-				public static int SmallLength = 1536;
+				public static string BigTexts = $"emb://{CatalogId}/text-search-doc/latest";
+				public static int BigTextsLength = 256;
 
-				public static string Large = "text-embedding-3-large";
-				public static int LargeLength = 3072;
-
-				public static string Ada = "text-embedding-ada-002";
-				public static int AdaLength = 1536;
+				public static string SmallTexts = $"$emb://{CatalogId}/text-search-doc/latest;";
+				public static int SmallTextsLength = 256;
 			}
 		}
 

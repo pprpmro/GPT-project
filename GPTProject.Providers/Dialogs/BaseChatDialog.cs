@@ -108,7 +108,7 @@ namespace GPTProject.Providers.Dialogs
 		public virtual async Task<string> SendMessage(
 			string? message,
 			Action<string>? onStreamedData = null,
-			bool stream = true,
+			bool stream = false,
 			bool rememberMessage = true)
 		{
 			if(!string.IsNullOrEmpty(message))
@@ -131,7 +131,7 @@ namespace GPTProject.Providers.Dialogs
 			{
 				Content = JsonContent.Create(requestData)
 			};
-			using var response = await httpClient.SendAsync(request, stream ? HttpCompletionOption.ResponseHeadersRead : HttpCompletionOption.ResponseHeadersRead);
+			using var response = await httpClient.SendAsync(request, stream ? HttpCompletionOption.ResponseHeadersRead : HttpCompletionOption.ResponseContentRead);
 			response.EnsureSuccessStatusCode();
 
 			string assistantResponse = stream
