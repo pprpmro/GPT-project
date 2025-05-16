@@ -234,6 +234,7 @@ namespace GPTProject.Providers.Dialogs
 		{
 			var totalTokens = usage?.TotalTokens ?? CurrentTokenHistorySize;
 			sessionTokenUsage += totalTokens;
+			return;
 			if (totalTokens <= MaxTokenHistorySize)
 			{
 				return;

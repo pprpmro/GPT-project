@@ -137,7 +137,7 @@ namespace GPTProject.Core.ChatBot
 					Console.WriteLine(GetOutputMessage());
 				}
 			}
-			logger.Log($"Потрачено на диалог: {TotalSendedTokenCount}", LogLevel.Danger);
+			logger.Log($"Потрачено токенов на диалог: {TotalSendedTokenCount}", LogLevel.Danger);
 		}
 
 		private async Task<bool> Process()
@@ -179,7 +179,6 @@ namespace GPTProject.Core.ChatBot
 			return false;
 		}
 
-		//TODO Продумать как можно сделать чтобы обработать случаи, када оба поля не пусты
 		private async Task<bool> ProcessSmallTalkState()
 		{
 			if (string.IsNullOrWhiteSpace(currentUserMessage))

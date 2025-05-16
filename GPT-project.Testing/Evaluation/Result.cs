@@ -21,11 +21,32 @@
 
 		public override string ToString()
 		{
-			return
-				$"Pair count {PairCount} {Environment.NewLine}" +
-				$"BERTScore: avg={BertScoreAvg}, min={BertScoreMin}, max={BertScoreMax} {Environment.NewLine}" +
-				$"Semantic Similarity: avg={CosineAvg}, min={CosineMin}, max={CosineMax} {Environment.NewLine}" +
-				$"Judge: avg={JudgeAvg}, min={JudgeMin}, max={JudgeMax}";
+			var result = $"Pair count {PairCount} {Environment.NewLine}";
+
+			result += $"BERTScore{Environment.NewLine}";
+			for (int i = 0; i < BertScore.Count; i++)
+			{
+				result += $"{i+ 1}) Score: {BertScore[i]} {Environment.NewLine}";
+			}
+			result += $"avg={BertScoreAvg}, min={BertScoreMin}, max={BertScoreMax} {Environment.NewLine}";
+			result += $"{Environment.NewLine}";
+
+			result += $"Semantic Similarity:{Environment.NewLine}";
+			for (int i = 0; i < CosineScore.Count; i++)
+			{
+				result += $"{i+1}) Score: {CosineScore[i]}{Environment.NewLine}";
+			}
+			result += $"avg={CosineAvg}, min={CosineMin}, max={CosineMax} {Environment.NewLine}";
+
+			//result += $"{Environment.NewLine}";
+			//result += $"LLM-as_Judge:{Environment.NewLine}";
+			//for (int i = 0; i < JudgeScore.Count; i++)
+			//{
+			//	result += $"{i + 1}) Score: {JudgeScore[i]}{Environment.NewLine}";
+			//}
+			//result += $"avg={JudgeAvg}, min={JudgeMin}, max={JudgeMax} {Environment.NewLine}";
+
+			return result ;
 		}
 	}
 }
