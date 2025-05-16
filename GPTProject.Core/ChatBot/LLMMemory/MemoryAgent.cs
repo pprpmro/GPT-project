@@ -7,6 +7,7 @@ using GPTProject.Common;
 using GPTProject.Common.Utils;
 using GPTProject.Providers.Dialogs.Enumerations;
 using GPTProject.Providers.Data.Dialogs;
+using GPTProject.Providers.Vectorizers.Interfaces;
 
 namespace GPTProject.Core.ChatBot.LLMMemory
 {
@@ -17,10 +18,10 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 		private readonly DefaultQdrantService _qdrantService;
 		private readonly JsonSerializerOptions _options;
 
-		public MemoryAgent(Dictionary<DialogType, ProviderType> providerTypes, string collectionName, VectorizerRequest request) {
+		public MemoryAgent(Dictionary<DialogType, ProviderType> providerTypes, string collectionName, VectorizerRequest request, IVectorizer vectorizer) {
 			_providerSaving = DialogSelector.GetDialog(providerTypes, DialogType.Saving);
 			_providerRestoring = DialogSelector.GetDialog(providerTypes, DialogType.Restoring);
-			_qdrantService = new DefaultQdrantService(collectionName, request);
+			_qdrantService = new DefaultQdrantService(collectionName, request, vectorizer);
 			_options = new JsonSerializerOptions
 			{
 				PropertyNameCaseInsensitive = true

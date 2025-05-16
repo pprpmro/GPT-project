@@ -15,7 +15,7 @@ namespace GPTProject.Testing
 			var runner = new Runner
 			(
 				new BERTScore(),
-				new SemanticSimilarityScore(new DefaultVectorizer()),
+				new SemanticSimilarityScore(new ChatGPTVectorizer()),
 				new LLMAsJudgeScore(new ChatGPTDialog())
 			);
 

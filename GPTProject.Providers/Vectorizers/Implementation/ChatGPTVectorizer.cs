@@ -2,18 +2,22 @@
 using GPTProject.Providers.Vectorizers.Interfaces;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
-using static GPTProject.Providers.Common.Configurations;
+using static GPTProject.Providers.Common.Configurations.ChatGPT;
 
 namespace GPTProject.Providers.Vectorizers.Implementation
 {
-	public class DefaultVectorizer : IVectorizer
+	public class ChatGPTVectorizer : IVectorizer
 	{
+		private string CurrentModel = EmbeddingModels.Small.Model;
+
 		public async Task<VectorizerResponse> GetEmbeddingAsync(VectorizerRequest request)
 		{
 			var httpClient = new HttpClient();
-			httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {ChatGPT.ApiKey}");
+			httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {ApiKey}");
 
-			var response = await httpClient.PostAsJsonAsync(ChatGPT.EmbeddingEndpoint, request);
+			request.Model = CurrentModel;
+
+			var response = await httpClient.PostAsJsonAsync(EmbeddingEndpoint, request);
 
 			if (!response.IsSuccessStatusCode)
 			{
@@ -30,6 +34,11 @@ namespace GPTProject.Providers.Vectorizers.Implementation
 				.ToArray();
 
 			return new VectorizerResponse { Embedding = embeddings };
+		}
+
+		public void SetModel(string model)
+		{
+			CurrentModel = model;
 		}
 	}
 }

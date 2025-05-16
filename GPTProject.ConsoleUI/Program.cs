@@ -10,6 +10,8 @@ using GPTProject.Core.ChatBot.LLMMemory;
 using GPTProject.Common;
 using GPTProject.Providers.Dialogs.Enumerations;
 using GPTProject.Testing;
+using GPTProject.Providers.Factories.Implementations;
+using static GPTProject.Providers.Common.Configurations;
 
 namespace GPTProject.ConsoleUI
 {
@@ -114,26 +116,45 @@ namespace GPTProject.ConsoleUI
 			}
 		}
 
-		private static async Task RunVectorizer()
+		private static async Task RunMemoryAgent()
 		{
 			var request = new VectorizerRequest()
 			{
-				Encoding_format = "float",
-				Model = "text-embedding-3-small",
+				Encoding_format = "float"
 			};
+
+			var factory = new VectorizerFactory();
+			var vectorizer = factory.Create(ChatGPT.EmbeddingModels.Small);
+
 			var providerConfig = new Dictionary<DialogType, ProviderType>
 			{
 				{ DialogType.User, ProviderType.ChatGPT },
 				{ DialogType.Saving, ProviderType.ChatGPT },
 				{ DialogType.Restoring, ProviderType.ChatGPT }
 			};
-			var dialogue = new DialogueAgent(providerConfig, "cat", request, "Представь что ты котик и веди себя соответствующе");
+			var dialogue = new DialogueAgent(providerConfig, "cat", request, vectorizer, "Представь что ты котик и веди себя соответствующе");
 			AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
 			{
 				Console.WriteLine("\nProcessExit: Приложение закрывается...");
 				SaveAsync(dialogue).Wait();
 			};
 			await dialogue.Run(() => Task.FromResult(GetUserMessage()), Console.Write);
+		}
+
+		private static async Task RunVectorizer()
+		{
+			var request = new VectorizerRequest()
+			{
+				Encoding_format = "float",
+				Input = [ "Пёс" ]
+			};
+
+			var factory = new VectorizerFactory();
+			var vectorizer = factory.Create(GigaChat.EmbeddingModels.Default);
+
+			var testVector = await vectorizer.GetEmbeddingAsync(request);
+
+			Console.WriteLine(testVector);
 		}
 
 		static async Task SaveAsync(DialogueAgent agent)
@@ -176,8 +197,11 @@ namespace GPTProject.ConsoleUI
 			//await RunAgent();
 			//return;
 
-			//await RunVectorizer();
+			//await RunMemoryAgent();
 			//return;
+
+			await RunVectorizer();
+			return;
 		}
 	}
 }

@@ -5,6 +5,7 @@ using GPTProject.Providers.Data.Vectorizers;
 using GPTProject.Providers.Dialogs.Enumerations;
 using GPTProject.Providers.Dialogs.Implementations;
 using GPTProject.Providers.Dialogs.Interfaces;
+using GPTProject.Providers.Vectorizers.Interfaces;
 
 namespace GPTProject.Core.ChatBot.LLMMemory
 {
@@ -16,10 +17,10 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 
 		private string? _memories;
 
-		public DialogueAgent(Dictionary<DialogType, ProviderType> providerTypes, string collectionName, VectorizerRequest request, string SystemPrompt = "") {
+		public DialogueAgent(Dictionary<DialogType, ProviderType> providerTypes, string collectionName, VectorizerRequest request, IVectorizer vectorizer, string SystemPrompt = "") {
 			_provider = DialogSelector.GetDialog(providerTypes, DialogType.User);
 			_collectionName = collectionName;
-			_memoryAgent = new MemoryAgent(providerTypes, _collectionName, request);
+			_memoryAgent = new MemoryAgent(providerTypes, _collectionName, request, vectorizer);
 
 			_provider.SetOverflowHandler(OverflowHandlerAsync);
 			if (SystemPrompt != "") _provider.UpdateSystemPrompt(SystemPrompt);

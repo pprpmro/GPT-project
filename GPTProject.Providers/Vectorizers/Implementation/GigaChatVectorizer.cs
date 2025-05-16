@@ -1,22 +1,56 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
-using GPTProject.Providers.Data.Dialogs;
+﻿using GPTProject.Providers.Data.Vectorizers;
+using GPTProject.Providers.Vectorizers.Interfaces;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using static GPTProject.Providers.Common.Configurations.GigaChat;
 
-namespace GPTProject.Providers.Dialogs.Implementations
+namespace GPTProject.Providers.Vectorizers.Implementation
 {
-	public class GigaChatDialog : BaseChatDialog<Message, Request>
+	public class GigaChatVectorizer : IVectorizer
 	{
-		private GigaChatAccessData? accessData;
+		private string CurrentModel = EmbeddingModels.Default.Model;
+		private HttpClient httpClient;
 		private Guid RqUID;
+		private GigaChatAccessData? accessData;
 
-		public GigaChatDialog() : this(10000) { }
-
-		public GigaChatDialog(int maxTokenHistorySize = 10000)
-			: base(DialogModels.Lite2, DialogEndpoint)
+		public GigaChatVectorizer() 
 		{
+			httpClient = new HttpClient();
 			RqUID = Guid.NewGuid();
-			MaxTokenHistorySize = maxTokenHistorySize;
+		}
+		public async Task<VectorizerResponse> GetEmbeddingAsync(VectorizerRequest request)
+		{
+			if (accessData == null || accessData.isExpired)
+			{
+				var newAccessData = await GetAccessData();
+				accessData = newAccessData;
+			}
+
+			request.Model = CurrentModel;
+
+			var response = await httpClient.PostAsJsonAsync(EmbeddingEndpoint, request);
+
+			if (!response.IsSuccessStatusCode)
+			{
+				throw new Exception($"{(int)response.StatusCode} {response.StatusCode}");
+			}
+
+			var node = JsonNode.Parse(await response.Content.ReadAsStringAsync())!;
+			var embeddings = node["data"]!
+				.AsArray()
+				.Select(item => item!["embedding"]!
+								.AsArray()
+								.Select(x => (float)x!.GetValue<double>())
+								.ToArray())
+				.ToArray();
+
+			return new VectorizerResponse { Embedding = embeddings };
+		}
+
+		public void SetModel(string model)
+		{
+			CurrentModel = model;
 		}
 
 		private async Task<GigaChatAccessData> GetAccessData()
@@ -56,17 +90,6 @@ namespace GPTProject.Providers.Dialogs.Implementations
 					throw new Exception($"{(int)response.StatusCode} {response.StatusCode}");
 				}
 			}
-		}
-
-		public override async Task<string> SendMessage(string? content, Action<string>? onStreamedData = null, bool stream = true, bool rememberMessage = true)
-		{
-			if (accessData == null || accessData.isExpired)
-			{
-				var newAccessData = await GetAccessData();
-				accessData = newAccessData;
-			}
-
-			return await base.SendMessage(content, onStreamedData, stream, rememberMessage);
 		}
 	}
 }

@@ -7,22 +7,16 @@ using GPTProject.Common;
 using GPTProject.Common.Utils;
 using GPTProject.Providers.Dialogs.Enumerations;
 using GPTProject.Providers.Data.Dialogs;
+using GPTProject.Providers.Vectorizers.Interfaces;
 
 namespace GPTProject.Core.ChatBot.LLMMemory
 {
 	public class PlanningAgent
 	{
 		private readonly IChatDialog _provider;
-		private readonly DefaultQdrantService _qdrantService;
-		private readonly JsonSerializerOptions _options;
 
-		public PlanningAgent(Dictionary<DialogType, ProviderType> providerTypes, string collectionName, VectorizerRequest request) {
+		public PlanningAgent(Dictionary<DialogType, ProviderType> providerTypes, string collectionName) {
 			_provider = DialogSelector.GetDialog(providerTypes, DialogType.Saving);
-			_qdrantService = new DefaultQdrantService(collectionName, request);
-			_options = new JsonSerializerOptions
-			{
-				PropertyNameCaseInsensitive = true
-			};
 		}
 
 		public async Task<string> MakeNewPlan(List<IMessage> messagesHistory)

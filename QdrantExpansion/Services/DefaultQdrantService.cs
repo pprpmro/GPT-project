@@ -1,5 +1,4 @@
 ﻿using GPTProject.Providers.Data.Vectorizers;
-using GPTProject.Providers.Vectorizers.Implementation;
 using GPTProject.Providers.Vectorizers.Interfaces;
 using QdrantExpansion.Models;
 using QdrantExpansion.Repository;
@@ -16,10 +15,10 @@ namespace QdrantExpansion.Services
 		public string _collectionName;
 		public VectorizerRequest _request;
 
-		public DefaultQdrantService(string collectionName, VectorizerRequest request)
+		public DefaultQdrantService(string collectionName, VectorizerRequest request, IVectorizer vectorizer)
 		{
 			_repository = new QdrantRepository();
-			_vectorizer = new DefaultVectorizer();
+			_vectorizer = vectorizer;
 			_request = request;
 			_collectionName = collectionName + "_" + _request.Model;
 		}
@@ -53,7 +52,6 @@ namespace QdrantExpansion.Services
 			try
 			{
 				var points = new List<VectorPoint>();
-				var vectorizer = new DefaultVectorizer();
 
 				var messages = new List<string>();
 
@@ -64,7 +62,7 @@ namespace QdrantExpansion.Services
 
 				_request.Input = messages.ToArray();
 
-				var response = await vectorizer.GetEmbeddingAsync(_request);
+				var response = await _vectorizer.GetEmbeddingAsync(_request);
 
 				for (var i = 0; i < payloads.Count; i++) 
 				{

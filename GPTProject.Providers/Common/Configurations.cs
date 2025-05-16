@@ -1,4 +1,7 @@
-﻿namespace GPTProject.Providers.Common
+﻿using GPTProject.Providers.Dialogs.Enumerations;
+using System.Text.Json.Serialization;
+
+namespace GPTProject.Providers.Common
 {
 	public static class Configurations
 	{
@@ -28,14 +31,26 @@
 			public static string EmbeddingEndpoint = "https://api.openai.com/v1/embeddings";
 			public static class EmbeddingModels
 			{
-				public static string Small = "text-embedding-3-small";
-				public static int SmallLength = 1536;
+				public static Embedder Small = new()
+				{
+					Model = "text-embedding-3-small",
+					Lenght = 1536,
+					Provider = ProviderType.ChatGPT
+				};
 
-				public static string Large = "text-embedding-3-large";
-				public static int LargeLength = 3072;
+				public static Embedder Large = new()
+				{
+					Model = "text-embedding-3-large",
+					Lenght = 3072,
+					Provider = ProviderType.ChatGPT
+				};
 
-				public static string Ada = "text-embedding-ada-002";
-				public static int AdaLength = 1536;
+				public static Embedder Ada = new()
+				{
+					Model = "text-embedding-ada-002",
+					Lenght = 1536,
+					Provider = ProviderType.ChatGPT
+				};
 			}
 		}
 
@@ -57,11 +72,19 @@
 			public static string EmbeddingEndpoint = "https://llm.api.cloud.yandex.net/foundationModels/v1/tokenize";
 			public static class EmbeddingModels
 			{
-				public static string BigTexts = $"emb://{CatalogId}/text-search-doc/latest";
-				public static int BigTextsLength = 256;
+				public static Embedder BigTexts = new()
+				{
+					Model = $"emb://{CatalogId}/text-search-doc/latest",
+					Lenght = 256,
+					Provider = ProviderType.YandexGPT
+				};
 
-				public static string SmallTexts = $"$emb://{CatalogId}/text-search-doc/latest;";
-				public static int SmallTextsLength = 256;
+				public static Embedder SmallTexts = new()
+				{
+					Model = $"$emb://{CatalogId}/text-search-query/latest",
+					Lenght = 256,
+					Provider = ProviderType.YandexGPT
+				};
 			}
 		}
 
@@ -91,11 +114,49 @@
 			public static string EmbeddingEndpoint = "https://gigachat.devices.sberbank.ru/api/v1/embeddings";
 			public static class EmbeddingModels
 			{
-				public static string Default = "Embeddings";
-				public static int DefaultLength = 512;
+				public static Embedder Default = new()
+				{
+					Model = "Embeddings",
+					Lenght = 512,
+					Provider = ProviderType.GigaChat
+				};
 
-				public static string Giga = "EmbeddingsGigaR";
-				public static int GigaLength = 4096;
+				public static Embedder Giga = new()
+				{
+					Model = "EmbeddingsGigaR",
+					Lenght = 4096,
+					Provider = ProviderType.GigaChat
+				};
+			}
+
+			public class GigaChatAccessData
+			{
+				[JsonPropertyName("access_token")]
+				public string AccessToken { get; set; } = string.Empty;
+				[JsonPropertyName("expires_at")]
+				public long? ExpiresAt { get; set; }
+				[JsonPropertyName("code")]
+				public int Code { get; set; }
+				[JsonPropertyName("message")]
+				public string Message { get; set; } = string.Empty;
+
+				public bool isExpired
+				{
+					get
+					{
+						if (!ExpiresAt.HasValue)
+						{
+							return true;
+						}
+						else
+						{
+							TimeSpan timeSpan = TimeSpan.FromMilliseconds(ExpiresAt.Value);
+							var expiresDataTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc) + timeSpan;
+							expiresDataTime = expiresDataTime.ToLocalTime();
+							return expiresDataTime < DateTime.Now;
+						}
+					}
+				}
 			}
 		}
 
@@ -110,5 +171,13 @@
 				public static string Reasoner = "deepseek-reasoner";
 			}
 		}
+
+		public class Embedder
+		{
+			public required string Model { get; set; }
+			public required int Lenght { get; set; }
+			public ProviderType Provider { get; set; }
+		}
+
 	}
 }
