@@ -68,8 +68,8 @@ namespace GPTProject.ConsoleUI
 
 		private static async Task RunClassicChatBot()
 		{
-			IChatDialog chatDialog = dialogFactory.Create(ProviderType.GigaChat);
-			//IChatDialog chatDialog = dialogFactory.CreateDefaultProvider("darkidol-llama-3.1-8b-instruct-1.2-uncensored@q8_0");
+			//IChatDialog chatDialog = dialogFactory.Create(ProviderType.GigaChat);
+			IChatDialog chatDialog = dialogFactory.CreateDefaultProvider("darkidol-llama-3.1-8b-instruct-1.2-uncensored@q8_0");
 			try
 			{
 				await RunClassicChatBot(chatDialog);
@@ -194,13 +194,13 @@ namespace GPTProject.ConsoleUI
 			switch (choice)
 			{
 				case "1":
-					await RunClassicChatBot();
+					await RunAgent();
 					break;
 				case "2":
-					await MetricTest.Run();		
+					await RunClassicChatBot();
 					break;
 				case "3":
-					await RunAgent();
+					await MetricTest.Run();
 					break;
 				case "4":
 					await RunMemoryAgent();
