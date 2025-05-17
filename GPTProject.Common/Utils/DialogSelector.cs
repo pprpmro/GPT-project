@@ -21,6 +21,7 @@ namespace GPTProject.Common.Utils
 			ProviderType.ChatGPT => new ChatGPTDialog(),
 			ProviderType.GigaChat => new GigaChatDialog(),
 			ProviderType.DeepSeek => new DeepSeekDialog(),
+			ProviderType.YandexGPT => new DeepSeekDialog(),
 			_ => throw new NotImplementedException()
 		};
 	}
