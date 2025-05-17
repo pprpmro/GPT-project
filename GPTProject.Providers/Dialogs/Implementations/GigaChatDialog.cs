@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
+﻿using GPTProject.Providers.Common;
 using GPTProject.Providers.Data.Dialogs;
 using static GPTProject.Providers.Common.Configurations.GigaChat;
 
@@ -7,65 +6,24 @@ namespace GPTProject.Providers.Dialogs.Implementations
 {
 	public class GigaChatDialog : BaseChatDialog<Message, Request>
 	{
-		private GigaChatAccessData? accessData;
-		private Guid RqUID;
-
 		public GigaChatDialog() : this(10000) { }
 
 		public GigaChatDialog(int maxTokenHistorySize = 10000)
 			: base(DialogModels.Lite2, DialogEndpoint)
 		{
-			RqUID = Guid.NewGuid();
+			authentificator = new GigaChatAuthentificator(httpClient);
 			MaxTokenHistorySize = maxTokenHistorySize;
 		}
 
-		private async Task<GigaChatAccessData> GetAccessData()
-		{
-			httpClient.DefaultRequestHeaders.Clear();
-			httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {AuthorizeData}");
-			httpClient.DefaultRequestHeaders.Add("RqUID", RqUID.ToString());
-
-			var scopeList = new List<KeyValuePair<string, string>>() { new KeyValuePair<string, string>("scope", Scope) };
-			using var response = await httpClient.PostAsync(AccessTokenEndpoint, new FormUrlEncodedContent(scopeList));
-
-			var accessData = GetAccessData(response);
-
-			if (accessData == null)
-			{
-				throw new NullReferenceException(nameof(accessData));
-			}
-
-			httpClient.DefaultRequestHeaders.Clear();
-			httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessData.AccessToken}");
-			return accessData;
-
-			GigaChatAccessData? GetAccessData(HttpResponseMessage? response)
-			{
-				if (response == null)
-				{
-					throw new NullReferenceException(nameof(response));
-				}
-
-				string result = response.Content.ReadAsStringAsync().Result;
-				if (response.IsSuccessStatusCode)
-				{
-					return JsonSerializer.Deserialize<GigaChatAccessData>(result);
-				}
-				else
-				{
-					throw new Exception($"{(int)response.StatusCode} {response.StatusCode}");
-				}
-			}
-		}
+		private readonly GigaChatAuthentificator authentificator;
 
 		public override async Task<string> SendMessage(string? content, Action<string>? onStreamedData = null, bool stream = true, bool rememberMessage = true)
 		{
-			if (accessData == null || accessData.isExpired)
+			var authenticated = await authentificator.EnsureAccessData();
+			if (!authenticated)
 			{
-				var newAccessData = await GetAccessData();
-				accessData = newAccessData;
+				throw new InvalidOperationException("Cant get access data");
 			}
-
 			return await base.SendMessage(content, onStreamedData, stream, rememberMessage);
 		}
 	}

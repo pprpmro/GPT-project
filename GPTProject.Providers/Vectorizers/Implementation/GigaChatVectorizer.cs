@@ -1,8 +1,8 @@
-﻿using GPTProject.Providers.Data.Vectorizers;
-using GPTProject.Providers.Vectorizers.Interfaces;
-using System.Net.Http.Json;
-using System.Text.Json;
+﻿using System.Net.Http.Json;
 using System.Text.Json.Nodes;
+using GPTProject.Providers.Common;
+using GPTProject.Providers.Data.Vectorizers;
+using GPTProject.Providers.Vectorizers.Interfaces;
 using static GPTProject.Providers.Common.Configurations.GigaChat;
 
 namespace GPTProject.Providers.Vectorizers.Implementation
@@ -10,21 +10,21 @@ namespace GPTProject.Providers.Vectorizers.Implementation
 	public class GigaChatVectorizer : IVectorizer
 	{
 		private string CurrentModel = EmbeddingModels.Default.Model;
-		private HttpClient httpClient;
-		private Guid RqUID;
-		private GigaChatAccessData? accessData;
+
+		private readonly GigaChatAuthentificator authentificator;
+		private readonly HttpClient httpClient;
 
 		public GigaChatVectorizer() 
 		{
 			httpClient = new HttpClient();
-			RqUID = Guid.NewGuid();
+			authentificator = new GigaChatAuthentificator(httpClient);
 		}
 		public async Task<VectorizerResponse> GetEmbeddingAsync(VectorizerRequest request)
 		{
-			if (accessData == null || accessData.isExpired)
+			var authenticated = await authentificator.EnsureAccessData();
+			if (!authenticated)
 			{
-				var newAccessData = await GetAccessData();
-				accessData = newAccessData;
+				throw new InvalidOperationException("Cant get access data");
 			}
 
 			request.Model = CurrentModel;
@@ -51,45 +51,6 @@ namespace GPTProject.Providers.Vectorizers.Implementation
 		public void SetModel(string model)
 		{
 			CurrentModel = model;
-		}
-
-		private async Task<GigaChatAccessData> GetAccessData()
-		{
-			httpClient.DefaultRequestHeaders.Clear();
-			httpClient.DefaultRequestHeaders.Add("Authorization", $"Basic {AuthorizeData}");
-			httpClient.DefaultRequestHeaders.Add("RqUID", RqUID.ToString());
-
-			var scopeList = new List<KeyValuePair<string, string>>() { new KeyValuePair<string, string>("scope", Scope) };
-			using var response = await httpClient.PostAsync(AccessTokenEndpoint, new FormUrlEncodedContent(scopeList));
-
-			var accessData = GetAccessData(response);
-
-			if (accessData == null)
-			{
-				throw new NullReferenceException(nameof(accessData));
-			}
-
-			httpClient.DefaultRequestHeaders.Clear();
-			httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessData.AccessToken}");
-			return accessData;
-
-			GigaChatAccessData? GetAccessData(HttpResponseMessage? response)
-			{
-				if (response == null)
-				{
-					throw new NullReferenceException(nameof(response));
-				}
-
-				string result = response.Content.ReadAsStringAsync().Result;
-				if (response.IsSuccessStatusCode)
-				{
-					return JsonSerializer.Deserialize<GigaChatAccessData>(result);
-				}
-				else
-				{
-					throw new Exception($"{(int)response.StatusCode} {response.StatusCode}");
-				}
-			}
 		}
 	}
 }
