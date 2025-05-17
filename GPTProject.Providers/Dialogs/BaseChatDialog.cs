@@ -1,7 +1,7 @@
-﻿using System.Data;
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using GPTProject.Providers.Common;
 using GPTProject.Providers.Data.Dialogs;
 using GPTProject.Providers.Dialogs.Implementations;
 using GPTProject.Providers.Dialogs.Interfaces;
@@ -13,6 +13,7 @@ namespace GPTProject.Providers.Dialogs
 		where TRequest : IRequest, new()
 	{
 		private readonly ITokenCalculator tokenCalculator = new TokenCalculator();
+		private readonly LoadingIndicator loadingIndicator = new LoadingIndicator(Console.Write);
 
 		protected List<IMessage> messagesHistory;
 		protected HttpClient httpClient;
@@ -127,6 +128,11 @@ namespace GPTProject.Providers.Dialogs
 				Stream = stream,
 			};
 
+			if (!stream)
+			{
+				loadingIndicator.Start();
+			}
+
 			using var request = new HttpRequestMessage(HttpMethod.Post, completionsEndpoint)
 			{
 				Content = JsonContent.Create(requestData)
@@ -153,6 +159,8 @@ namespace GPTProject.Providers.Dialogs
 
 			//TODO: Can't get Usage from streamed response
 			EnsureHistorySizeLimit(null);
+			await loadingIndicator.StopAsync();
+
 			return assistantResponse;
 		}
 
