@@ -1,28 +1,37 @@
-﻿using GPTProject.Core.ChatBot;
+﻿using GPTProject.Common;
 using GPTProject.Common.Logging;
-using GPTProject.Providers.Dialogs.Interfaces;
-using GPTProject.Testing.Metrics;
-using GPTProject.Testing.Evaluation;
-using GPTProject.Providers.Vectorizers.Implementation;
-using GPTProject.Providers.Dialogs.Implementations;
-using GPTProject.Providers.Data.Vectorizers;
+using GPTProject.Core.ChatBot;
 using GPTProject.Core.ChatBot.LLMMemory;
-using GPTProject.Common;
+using GPTProject.Providers.Data.Vectorizers;
 using GPTProject.Providers.Dialogs.Enumerations;
-using GPTProject.Testing;
+using GPTProject.Providers.Dialogs.Implementations;
+using GPTProject.Providers.Dialogs.Interfaces;
 using GPTProject.Providers.Factories.Implementations;
+using GPTProject.Providers.Factories.Interfaces;
 using static GPTProject.Providers.Common.Configurations;
 
 namespace GPTProject.ConsoleUI
 {
 	public partial class Program
 	{
-		static readonly ILogger logger = new ConsoleLogger();
+		private static readonly ILogger logger = new ConsoleLogger();
+		private static readonly IVectorizerFactory vectorizerFactory = new VectorizerFactory();
+		private static readonly IDialogFactory dialogFactory = new DialogFactory();
+
 		private static readonly ManualResetEventSlim shutdownEvent = new(false);
+
+		const string subjectArea = "Эксперт по некоторым динозаврам, отвечаю на вопросы о их видах, жизни и особенностях. В твоей базе знаний есть информация о следующих видах:" +
+				"алиорам\r\n" +
+				"аллозавр\r\n" +
+				"орнитолест\r\n" +
+				"трицератопс\r\n" +
+				"целофизис\r\n" +
+				"целюр\r\n" +
+				"Другая информация тебе не доступна. Ты ничего не знаешь про других, не выдавай м не выдумывай ничего про них\n" +
+				"Если ты будешь обманывать или выдумывать, то пользователь очень сильно расстроится!!!\n";
 
 		private static async Task RunClassicChatBot(IChatDialog chatDialog)
 		{
-			var subjectArea = "Эксперт по некоторым динозаврам, отвечаю на вопросы о их видах, жизни и особенностях.";
 			var startPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\..\"));
 			string sourcesFolderPath = Path.Combine(startPath, @"GPTProject.ConsoleUI\Sources");
 			string segmentsFolderPath = Path.Combine(sourcesFolderPath, "Segments");
@@ -49,7 +58,7 @@ namespace GPTProject.ConsoleUI
 					break;
 				}
 
-				var response = await chatDialog.SendMessage(userInput);
+				var response = await chatDialog.SendMessage(userInput, onStreamedData: null, stream: false, rememberMessage: true);
 				Console.WriteLine($"Бот: {response}");
 			}
 			logger.Log($"Потрачено на диалог: {chatDialog.SessionTokenUsage}", LogLevel.Error);
@@ -71,16 +80,6 @@ namespace GPTProject.ConsoleUI
 
 		private static Agent CreateAgent()
 		{
-			var subjectArea = "Эксперт по некоторым динозаврам, отвечаю на вопросы о их видах, жизни и особенностях. В твоей базе знаний есть информация о следующих видах:" +
-				"алиорам\r\n" +
-				"аллозавр\r\n" +
-				"орнитолест\r\n" +
-				"трицератопс\r\n" +
-				"целофизис\r\n" +
-				"целюр\r\n" +
-				"Другая информация тебе не доступна. Ты ничего не знаешь про других, не выдавай м не выдумывай ничего про них\n" +
-				"Если ты будешь обманывать или выдумывать, то пользователь очень сильно расстроится!!!\n";
-
 			var startPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, @"..\..\..\..\"));
 			string sourcesFolderPath = Path.Combine(startPath, @"GPTProject.ConsoleUI\Sources");
 			string segmentsFolderPath = Path.Combine(sourcesFolderPath, "Segments");
@@ -91,11 +90,11 @@ namespace GPTProject.ConsoleUI
 
 			var providerConfig = new Dictionary<DialogType, ProviderType>
 			{
-				{ DialogType.User, ProviderType.GigaChat },
-				{ DialogType.Classification, ProviderType.GigaChat },
-				{ DialogType.Cleansing, ProviderType.GigaChat },
-				{ DialogType.QuestionSeparator, ProviderType.GigaChat },
-				{ DialogType.SmallTalk, ProviderType.GigaChat }
+				{ DialogType.User, ProviderType.YandexGPT },
+				{ DialogType.Classification, ProviderType.YandexGPT },
+				{ DialogType.Cleansing, ProviderType.YandexGPT },
+				{ DialogType.QuestionSeparator, ProviderType.YandexGPT },
+				{ DialogType.SmallTalk, ProviderType.YandexGPT }
 			};
 			var helper = new Agent(providerConfig, subjectArea, knowledgeBaseFiles, logger);
 			logger.Log("ChatBotHelper готов к работе", LogLevel.Info);
@@ -149,9 +148,7 @@ namespace GPTProject.ConsoleUI
 				Input = [ "Пёс" ]
 			};
 
-			var factory = new VectorizerFactory();
-			var vectorizer = factory.Create(GigaChat.EmbeddingModels.Default);
-
+			var vectorizer = vectorizerFactory.Create(GigaChat.EmbeddingModels.Default);
 			var testVector = await vectorizer.GetEmbeddingAsync(request);
 
 			Console.WriteLine(testVector);
