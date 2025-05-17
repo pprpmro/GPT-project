@@ -8,6 +8,7 @@ using GPTProject.Providers.Dialogs.Implementations;
 using GPTProject.Providers.Dialogs.Interfaces;
 using GPTProject.Providers.Factories.Implementations;
 using GPTProject.Providers.Factories.Interfaces;
+using GPTProject.Testing;
 using static GPTProject.Providers.Common.Configurations;
 
 namespace GPTProject.ConsoleUI
@@ -184,22 +185,33 @@ namespace GPTProject.ConsoleUI
 			return userMessage;
 		}
 
-		public static async Task Main(string[] args)
+		static async Task Main(string[] args)
 		{
-			//await MetricTest.Run();
-			//return;
+			Console.WriteLine("Choose an option:\n1. Agent\n2. Classic Chat Bot\n3. Metric Test\n4. Memory Agent\n5. Vectorizer");
+			Console.Write("Choise: ");
+			string? choice = Console.ReadLine();
 
-			//await RunClassicChatBot();
-			//return;
-
-			//await RunAgent();
-			//return;
-
-			//await RunMemoryAgent();
-			//return;
-
-			await RunVectorizer();
-			return;
+			switch (choice)
+			{
+				case "1":
+					await RunClassicChatBot();
+					break;
+				case "2":
+					await MetricTest.Run();		
+					break;
+				case "3":
+					await RunAgent();
+					break;
+				case "4":
+					await RunMemoryAgent();
+					break;
+				case "5":
+					await RunVectorizer();
+					break;
+				default:
+					Console.WriteLine("Invalid option. Exiting.");
+					break;
+			}
 		}
 	}
 }
