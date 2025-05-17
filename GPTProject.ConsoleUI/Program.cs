@@ -67,7 +67,8 @@ namespace GPTProject.ConsoleUI
 
 		private static async Task RunClassicChatBot()
 		{
-			IChatDialog chatDialog = new GigaChatDialog(20000);
+			IChatDialog chatDialog = dialogFactory.Create(ProviderType.GigaChat);
+			//IChatDialog chatDialog = dialogFactory.CreateDefaultProvider("darkidol-llama-3.1-8b-instruct-1.2-uncensored@q8_0");
 			try
 			{
 				await RunClassicChatBot(chatDialog);
