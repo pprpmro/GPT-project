@@ -6,7 +6,7 @@ namespace GPTProject.Common.Utils
 	public static class JsonUtil
 	{
 		private static readonly Regex JsonRegex = new Regex(
-			@"(?<json>\{(?:[^{}]|(?<open>\{)|(?<-open>\}))*\}(?(open)(?!))|(?<json>\[(?:[^\[\]]|(?<open>\[)|(?<-open>\]))*\](?(open)(?!))",
+			@"(?<json>\{(?:[^{}]|(?<open>\{)|(?<-open>\}))*\}(?(open)(?!))|(?<json>\[(?:[^\[\]]|(?<open>\[)|(?<-open>\]))*\](?(open)(?!))))",
 			RegexOptions.Compiled | RegexOptions.Singleline
 		);
 

@@ -26,6 +26,8 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 			{
 				PropertyNameCaseInsensitive = true
 			};
+
+			_ = CheckCollection();
 		}
 
 		public async Task Save(List<IMessage> messagesHistory)
@@ -45,7 +47,6 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 							Text = p.Text,
 							Importance = p.Importance
 						}).ToList();
-				await _qdrantService.CreateIfNeededAsync(1536); //изменить, вытягивать размер из списка векторизаторов
 				await _qdrantService.UpsertStringsAsync(payloads);
 			}
 			catch (Exception ex)
@@ -84,6 +85,11 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 			}
 
 			return string.Empty;
+		}
+
+		private async Task CheckCollection()
+		{
+			await _qdrantService.CreateIfNeededAsync(1536); //изменить, вытягивать размер из списка векторизаторов
 		}
 	}
 }

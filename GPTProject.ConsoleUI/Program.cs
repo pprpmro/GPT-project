@@ -188,7 +188,7 @@ namespace GPTProject.ConsoleUI
 		static async Task Main(string[] args)
 		{
 			Console.WriteLine("Choose an option:\n1. Agent\n2. Classic Chat Bot\n3. Metric Test\n4. Memory Agent\n5. Vectorizer");
-			Console.Write("Choise: ");
+			Console.Write("Choice: ");
 			string? choice = Console.ReadLine();
 
 			switch (choice)
