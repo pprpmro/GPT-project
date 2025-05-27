@@ -1,5 +1,4 @@
 ﻿using GPTProject.Providers.Dialogs.Enumerations;
-using System.Text.Json.Serialization;
 
 namespace GPTProject.Providers.Common
 {
@@ -31,26 +30,11 @@ namespace GPTProject.Providers.Common
 			public static string EmbeddingEndpoint = "https://api.openai.com/v1/embeddings";
 			public static class EmbeddingModels
 			{
-				public static Embedder Small = new()
-				{
-					Model = "text-embedding-3-small",
-					Lenght = 1536,
-					Provider = ProviderType.ChatGPT
-				};
+				public static Embedder Small = new("text-embedding-3-small", 1536, ProviderType.ChatGPT);
 
-				public static Embedder Large = new()
-				{
-					Model = "text-embedding-3-large",
-					Lenght = 3072,
-					Provider = ProviderType.ChatGPT
-				};
+				public static Embedder Large = new("text-embedding-3-large", 3072, ProviderType.ChatGPT);
 
-				public static Embedder Ada = new()
-				{
-					Model = "text-embedding-ada-002",
-					Lenght = 1536,
-					Provider = ProviderType.ChatGPT
-				};
+				public static Embedder Ada = new("text-embedding-ada-002", 1536, ProviderType.ChatGPT);
 			}
 		}
 
@@ -72,19 +56,9 @@ namespace GPTProject.Providers.Common
 			public static string EmbeddingEndpoint = "https://llm.api.cloud.yandex.net/foundationModels/v1/tokenize";
 			public static class EmbeddingModels
 			{
-				public static Embedder BigTexts = new()
-				{
-					Model = $"emb://{CatalogId}/text-search-doc/latest",
-					Lenght = 256,
-					Provider = ProviderType.YandexGPT
-				};
+				public static Embedder BigTexts = new($"emb://{CatalogId}/text-search-doc/latest", 256, ProviderType.YandexGPT);
 
-				public static Embedder SmallTexts = new()
-				{
-					Model = $"$emb://{CatalogId}/text-search-query/latest",
-					Lenght = 256,
-					Provider = ProviderType.YandexGPT
-				};
+				public static Embedder SmallTexts = new($"$emb://{CatalogId}/text-search-query/latest", 256, ProviderType.YandexGPT);
 			}
 		}
 
@@ -114,19 +88,9 @@ namespace GPTProject.Providers.Common
 			public static string EmbeddingEndpoint = "https://gigachat.devices.sberbank.ru/api/v1/embeddings";
 			public static class EmbeddingModels
 			{
-				public static Embedder Default = new()
-				{
-					Model = "Embeddings",
-					Lenght = 512,
-					Provider = ProviderType.GigaChat
-				};
+				public static Embedder Default = new("Embeddings", 512, ProviderType.GigaChat);
 
-				public static Embedder Giga = new()
-				{
-					Model = "EmbeddingsGigaR",
-					Lenght = 4096,
-					Provider = ProviderType.GigaChat
-				};
+				public static Embedder Giga = new("EmbeddingsGigaR", 4096, ProviderType.GigaChat);
 			}
 		}
 
@@ -144,9 +108,16 @@ namespace GPTProject.Providers.Common
 
 		public class Embedder
 		{
-			public required string Model { get; set; }
-			public required int Lenght { get; set; }
-			public ProviderType Provider { get; set; }
+			public string Model { get; }
+			public int Lenght { get; }
+			public ProviderType Provider { get; }
+
+			public Embedder(string model, int lenght, ProviderType provider)
+			{
+				Model = model;
+				Lenght = lenght;
+				Provider = provider;
+			}
 		}
 
 	}

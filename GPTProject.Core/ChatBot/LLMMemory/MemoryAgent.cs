@@ -34,9 +34,12 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 			_providerSaving.UpdateSystemPrompt(PromptManager.GetSavingPrompt());
 
 			var response = await _providerSaving.SendMessage(null, null, false);
+			var responseJson = JsonUtil.ExtractJsonFromString(response);
+
+			if (responseJson is null) { return; }
 			try
 			{
-				List<Payload> payloads = JsonSerializer.Deserialize<List<Payload>>(response, _options)
+				List<Payload> payloads = JsonSerializer.Deserialize<List<Payload>>(responseJson, _options)
 					.Select(p => new Payload
 						{
 							Text = p.Text,
@@ -56,9 +59,12 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 			_providerRestoring.UpdateSystemPrompt(PromptManager.GetRestoringPrompt());
 
 			var response = await _providerRestoring.SendMessage(message);
+			var responseJson = JsonUtil.ExtractJsonFromString(response);
+
+			if (responseJson is null) { return string.Empty; }
 			try
 			{
-				string[] strings = JsonSerializer.Deserialize<string[]>(response);
+				string[] strings = JsonSerializer.Deserialize<string[]>(responseJson);
 				var searchResult = await _qdrantService.FindClosestForManyAsync(strings, 0.4f);
 
 				if (searchResult is null)
