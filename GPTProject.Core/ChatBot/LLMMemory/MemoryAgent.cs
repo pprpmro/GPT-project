@@ -19,8 +19,8 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 		private readonly JsonSerializerOptions _options;
 
 		public MemoryAgent(Dictionary<DialogType, ProviderType> providerTypes, string collectionName, VectorizerRequest request, IVectorizer vectorizer) {
-			_providerSaving = DialogSelector.GetDialog(providerTypes, DialogType.Saving);
-			_providerRestoring = DialogSelector.GetDialog(providerTypes, DialogType.Restoring);
+			_providerSaving = DialogUtil.GetDialog(providerTypes, DialogType.Saving);
+			_providerRestoring = DialogUtil.GetDialog(providerTypes, DialogType.Restoring);
 			_qdrantService = new DefaultQdrantService(collectionName, request, vectorizer);
 			_options = new JsonSerializerOptions
 			{
@@ -32,7 +32,7 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 
 		public async Task Save(List<IMessage> messagesHistory)
 		{
-			_providerSaving.SetCustomDialog(messagesHistory);
+			_providerSaving.SetCustomDialog(DialogUtil.CleanMessagesHistoryFromPrompts(messagesHistory));
 			_providerSaving.UpdateSystemPrompt(PromptManager.GetSavingPrompt());
 
 			var response = await _providerSaving.SendMessage(null, null, false);

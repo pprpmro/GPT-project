@@ -51,7 +51,7 @@ namespace GPTProject.Core.ChatBot
 
 			foreach (DialogType dialogType in requiredDialogTypes)
 			{ 
-				dialogs[dialogType] = DialogSelector.GetDialog(providerTypes, dialogType);
+				dialogs[dialogType] = DialogUtil.GetDialog(providerTypes, dialogType);
 			}
 			availableTypesAndFileNames = GetAvailableTypesAndFileNames(knowledgeBaseFiles);
 

@@ -8,7 +8,7 @@ namespace GPTProject.Core.Services.Interfaces
 	{
 		void SaveToJson(Character character);
 		Character LoadFromJson(string characterName);
-		List<string> GetCharNames(Dictionary<DialogType, ProviderType> providerTypes, DialogType dialogType);
+		List<string> GetCharNames();
 		string? GetCharacterFilePath(string characterName);
 	}
 }

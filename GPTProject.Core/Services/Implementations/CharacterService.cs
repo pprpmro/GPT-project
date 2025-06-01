@@ -1,7 +1,5 @@
-﻿using GPTProject.Common;
-using GPTProject.Core.Data;
+﻿using GPTProject.Core.Data;
 using GPTProject.Core.Services.Interfaces;
-using GPTProject.Providers.Dialogs.Enumerations;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -18,7 +16,9 @@ namespace GPTProject.Core.Services.Implementations
 			{
 				WriteIndented = true,
 				Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-				Converters = { new JsonStringEnumConverter() }
+				Converters = { new JsonStringEnumConverter() },
+				IncludeFields = true,
+				PropertyNameCaseInsensitive = true
 			};
 		}
 
@@ -31,7 +31,7 @@ namespace GPTProject.Core.Services.Implementations
 			string fileName = $"char-{character.Name}.json";
 			string fullPath = Path.Combine(charactersFolder, fileName);
 
-			string json = JsonSerializer.Serialize(this, options);
+			string json = JsonSerializer.Serialize(character, options);
 			File.WriteAllText(fullPath, json);
 		}
 
@@ -52,7 +52,7 @@ namespace GPTProject.Core.Services.Implementations
 			return JsonSerializer.Deserialize<Character>(json, options);
 		}
 
-		public List<string> GetCharNames(Dictionary<DialogType, ProviderType> providerTypes, DialogType dialogType)
+		public List<string> GetCharNames()
 		{
 			string appDirectory = AppDomain.CurrentDomain.BaseDirectory;
 			string charactersFolder = Path.Combine(appDirectory, folderName);
@@ -63,7 +63,7 @@ namespace GPTProject.Core.Services.Implementations
 			{
 				if (!Directory.Exists(charactersFolder))
 				{
-					throw new Exception("\"charachers\" folder not found");
+					throw new Exception("\"characters\" folder not found");
 				}
 
 				string[] allJsonFiles = Directory.GetFiles(charactersFolder, "*.json");

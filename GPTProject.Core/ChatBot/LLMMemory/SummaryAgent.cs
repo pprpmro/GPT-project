@@ -11,13 +11,13 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 	{
 		private readonly IChatDialog _provider;
 
-		public SummaryAgent(Dictionary<DialogType, ProviderType> providerTypes, string collectionName, VectorizerRequest request) {
-			_provider = DialogSelector.GetDialog(providerTypes, DialogType.Summary);
+		public SummaryAgent(Dictionary<DialogType, ProviderType> providerTypes) {
+			_provider = DialogUtil.GetDialog(providerTypes, DialogType.Summary);
 		}
 
 		public async Task<string> GetSummaryForContext(List<IMessage> messagesHistory)
 		{
-			_provider.SetCustomDialog(messagesHistory);
+			_provider.SetCustomDialog(DialogUtil.CleanMessagesHistoryFromPrompts(messagesHistory));
 			_provider.UpdateSystemPrompt(PromptManager.GetSummaryContentPrompt());
 
 			return await _provider.SendMessage(null, null, false);
@@ -25,7 +25,7 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 
 		public async Task<string> GetSummaryForSaving(List<IMessage> messagesHistory)
 		{
-			_provider.SetCustomDialog(messagesHistory);
+			_provider.SetCustomDialog(DialogUtil.CleanMessagesHistoryFromPrompts(messagesHistory));
 			_provider.UpdateSystemPrompt(PromptManager.GetSummaryForSavingPrompt());
 
 			return await _provider.SendMessage(null, null, false);

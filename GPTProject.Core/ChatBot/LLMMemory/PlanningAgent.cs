@@ -1,13 +1,8 @@
-﻿using GPTProject.Providers.Data.Vectorizers;
-using GPTProject.Providers.Dialogs.Interfaces;
-using System.Text.Json;
-using QdrantExpansion.Models;
-using QdrantExpansion.Services;
+﻿using GPTProject.Providers.Dialogs.Interfaces;
 using GPTProject.Common;
 using GPTProject.Common.Utils;
 using GPTProject.Providers.Dialogs.Enumerations;
 using GPTProject.Providers.Data.Dialogs;
-using GPTProject.Providers.Vectorizers.Interfaces;
 
 namespace GPTProject.Core.ChatBot.LLMMemory
 {
@@ -15,24 +10,25 @@ namespace GPTProject.Core.ChatBot.LLMMemory
 	{
 		private readonly IChatDialog _provider;
 
-		public PlanningAgent(Dictionary<DialogType, ProviderType> providerTypes, string collectionName) {
-			_provider = DialogSelector.GetDialog(providerTypes, DialogType.Saving);
+		public PlanningAgent(Dictionary<DialogType, ProviderType> providerTypes) {
+			_provider = DialogUtil.GetDialog(providerTypes, DialogType.Saving);
 		}
 
 		public async Task<string> MakeNewPlan(List<IMessage> messagesHistory)
 		{
-			_provider.SetCustomDialog(messagesHistory);
+			_provider.SetCustomDialog(DialogUtil.CleanMessagesHistoryFromPrompts(messagesHistory));
 			_provider.UpdateSystemPrompt(PromptManager.GetMakePlanPrompt());
 
 			 return await _provider.SendMessage(null, null, false);
 		}
 
-		public async Task<string> RemakeOldPlan(List<IMessage> messagesHistory)
+		public async Task<string> RemakeOldPlan(List<IMessage> messagesHistory, string oldPlan)
 		{
-			_provider.SetCustomDialog(messagesHistory);
-			_provider.UpdateSystemPrompt(PromptManager.GetRemakePlanPrompt());
+			_provider.SetCustomDialog(DialogUtil.CleanMessagesHistoryFromPrompts(messagesHistory));
+			_provider.UpdateSystemPrompt(PromptManager.GetRemakePlanPrompt(oldPlan));
 
-			return await _provider.SendMessage(null, null, false);
+			var a = await _provider.SendMessage(null, null, false);
+			return a;
 		}
 	}
 }

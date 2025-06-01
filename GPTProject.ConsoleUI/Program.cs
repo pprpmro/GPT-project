@@ -2,6 +2,9 @@
 using GPTProject.Common.Logging;
 using GPTProject.Core.ChatBot;
 using GPTProject.Core.ChatBot.LLMMemory;
+using GPTProject.Core.Data;
+using GPTProject.Core.Services.Implementations;
+using GPTProject.Core.Services.Interfaces;
 using GPTProject.Providers.Data.Vectorizers;
 using GPTProject.Providers.Dialogs.Enumerations;
 using GPTProject.Providers.Dialogs.Implementations;
@@ -18,6 +21,7 @@ namespace GPTProject.ConsoleUI
 		private static readonly ILogger logger = new ConsoleLogger();
 		private static readonly IVectorizerFactory vectorizerFactory = new VectorizerFactory();
 		private static readonly IDialogFactory dialogFactory = new DialogFactory();
+		private static readonly ICharacterService characterService = new CharacterService();
 
 		private static readonly ManualResetEventSlim shutdownEvent = new(false);
 
@@ -129,11 +133,26 @@ namespace GPTProject.ConsoleUI
 
 			var providerConfig = new Dictionary<DialogType, ProviderType>
 			{
-				{ DialogType.User, ProviderType.ChatGPT },
-				{ DialogType.Saving, ProviderType.ChatGPT },
-				{ DialogType.Restoring, ProviderType.ChatGPT }
+				{ DialogType.User, ProviderType.DeepSeek },
+				{ DialogType.Saving, ProviderType.DeepSeek },
+				{ DialogType.Restoring, ProviderType.DeepSeek },
+				{ DialogType.Summary, ProviderType.DeepSeek },
+				{ DialogType.Planning, ProviderType.DeepSeek },
 			};
-			var dialogue = new DialogueAgent(providerConfig, "cat", request, vectorizer, "Представь что ты котик и веди себя соответствующе");
+			//var dialogue = new DialogueAgent(providerConfig, "cat", request, vectorizer, "Представь что ты котик и веди себя соответствующе");
+			Character character;
+
+			var charNames = characterService.GetCharNames();
+			if (charNames.Contains("assistant"))
+			{
+				character = characterService.LoadFromJson("assistant");
+			}
+			else 
+			{
+				character = new Character("assistant", "", ProviderType.ChatGPT.ToString(), ChatGPT.EmbeddingModels.Small.Model);
+			}
+
+			var dialogue = new DialogueAgent(providerConfig, "assistant", request, vectorizer, character);
 			AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
 			{
 				Console.WriteLine("\nProcessExit: Приложение закрывается...");
